@@ -1,0 +1,237 @@
+# ══════════════════════════════════════════════════════════════════════════════
+# OUTBOUND SNIPER — GitHub Actions Workflow
+# ══════════════════════════════════════════════════════════════════════════════
+#
+# SCHEDULE (all UTC):
+#   Mon 04:30  → source    Fresh leads via Serper + LinkedIn, append to CSV
+#   Mon 05:00  → draft     Gemini drafts emails for all un-drafted Pending rows
+#   Mon 06:30  → dispatch  Send up to 5 (India/UK morning window)
+#   Tue 06:30  → dispatch  Send up to 5
+#   Wed 06:30  → dispatch  Send up to 5
+#   Thu 06:30  → dispatch  Send up to 5
+#                          ─────────────────────────
+#                          Total cap: 20/week (config controlled)
+#
+# Draft is INDEPENDENT of source — it can also be triggered manually at any time
+# to draft emails for any Pending rows that were sourced in previous runs.
+#
+# HOW DISPATCH WORKS (no human approval needed):
+#   Bot sources leads → drafts emails → dispatches automatically.
+#   All sent emails are logged in state/dispatch_log.jsonl.
+#   pipeline.csv and pipeline.xlsx update after every run — view anytime.
+#
+# REQUIRED GITHUB SECRETS  (Settings → Secrets → Actions → New repository secret):
+#   SERPER_API_KEY       serper.dev API key (free: 2500 searches/month)
+#   LINKEDIN_USERNAME    Secondary LinkedIn account email
+#   LINKEDIN_PASSWORD    Secondary LinkedIn account password
+#   GEMINI_API_KEY       Google AI Studio key (free: aistudio.google.com)
+#   SENDER_EMAIL         tanmay.kaper1401@gmail.com
+#   GMAIL_APP_PASSWORD   16-char App Password (myaccount.google.com → Security → App Passwords)
+#
+# OPTIONAL SECRETS (have defaults):
+#   OUTREACH_MODE        internship (default) | job
+#   WEEKLY_TARGET        25 (leads to source per week)
+#   WEEKLY_CAP           20 (max emails sent per week)
+#   MAX_PER_RUN          5  (max per dispatch run)
+#   SCORE_THRESHOLD      55 (minimum lead quality score 0-100)
+#   GEMINI_MODEL         gemini-2.0-flash (default)
+# ══════════════════════════════════════════════════════════════════════════════
+
+name: Outbound Sniper
+
+on:
+  schedule:
+    - cron: "30 4 * * 1"   # Monday   04:30 UTC → source
+    - cron: "0  5 * * 1"   # Monday   05:00 UTC → draft
+    - cron: "30 6 * * 1"   # Monday   06:30 UTC → dispatch
+    - cron: "30 6 * * 2"   # Tuesday  06:30 UTC → dispatch
+    - cron: "30 6 * * 3"   # Wednesday 06:30 UTC → dispatch
+    - cron: "30 6 * * 4"   # Thursday 06:30 UTC → dispatch
+
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "Pipeline stage to run"
+        required: true
+        default: "draft"
+        type: choice
+        options: [source, draft, dispatch]
+      dry_run:
+        description: "Dry run — log but do not send emails"
+        required: false
+        default: "false"
+        type: choice
+        options: ["true", "false"]
+      force_window:
+        description: "Force dispatch — skip timezone window check"
+        required: false
+        default: "false"
+        type: choice
+        options: ["true", "false"]
+      outreach_mode:
+        description: "Override outreach mode for this run only"
+        required: false
+        default: "internship"
+        type: choice
+        options: [internship, job]
+
+# Prevent concurrent runs stomping each other's CSV commits
+concurrency:
+  group: outbound-pipeline
+  cancel-in-progress: false
+
+jobs:
+
+  # ════════════════════════════════════════════════════════════════════════
+  # SOURCE  — Monday 04:30 UTC
+  # ════════════════════════════════════════════════════════════════════════
+  source:
+    name: "🔍 Source Leads"
+    runs-on: ubuntu-latest
+    if: |
+      (github.event_name == 'schedule' && github.event.schedule == '30 4 * * 1') ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'source')
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run sourcing pipeline
+        working-directory: modules
+        env:
+          SERPER_API_KEY:    ${{ secrets.SERPER_API_KEY }}
+          LINKEDIN_USERNAME: ${{ secrets.LINKEDIN_USERNAME }}
+          LINKEDIN_PASSWORD: ${{ secrets.LINKEDIN_PASSWORD }}
+          OUTREACH_MODE:     ${{ secrets.OUTREACH_MODE || 'internship' }}
+          WEEKLY_TARGET:     ${{ secrets.WEEKLY_TARGET || '25' }}
+          SCORE_THRESHOLD:   ${{ secrets.SCORE_THRESHOLD || '55' }}
+          ACTION:            source
+        run: python orchestrator.py
+
+      - name: Commit pipeline.csv + pipeline.xlsx
+        run: |
+          git config user.name  "outbound-bot[actions]"
+          git config user.email "outbound-bot@users.noreply.github.com"
+          git add state/pipeline.csv state/pipeline.xlsx
+          git diff --staged --quiet || git commit -m "bot: source run $(date -u +'%Y-%m-%d')"
+          git push
+
+  # ════════════════════════════════════════════════════════════════════════
+  # DRAFT  — Monday 05:00 UTC  (INDEPENDENT — no 'needs: source')
+  # Can also be triggered manually at any time to draft for any un-drafted rows
+  # ════════════════════════════════════════════════════════════════════════
+  draft:
+    name: "✍️ Draft Emails (Gemini)"
+    runs-on: ubuntu-latest
+    if: |
+      (github.event_name == 'schedule' && github.event.schedule == '0 5 * * 1') ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'draft')
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout (pull latest — source may have just pushed)
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+          ref: main
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Draft emails via Gemini
+        working-directory: modules
+        env:
+          GEMINI_API_KEY:  ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_MODEL:    ${{ secrets.GEMINI_MODEL || 'gemini-2.0-flash' }}
+          OUTREACH_MODE:   ${{ github.event.inputs.outreach_mode || secrets.OUTREACH_MODE || 'internship' }}
+          ACTION:          draft
+        run: python orchestrator.py
+
+      - name: Commit drafted CSV + Excel
+        run: |
+          git config user.name  "outbound-bot[actions]"
+          git config user.email "outbound-bot@users.noreply.github.com"
+          git add state/pipeline.csv state/pipeline.xlsx
+          git diff --staged --quiet || git commit -m "bot: email drafts $(date -u +'%Y-%m-%d')"
+          git push
+
+  # ════════════════════════════════════════════════════════════════════════
+  # DISPATCH  — Mon/Tue/Wed/Thu 06:30 UTC
+  # Reads Pending rows with drafts, checks timezone windows, sends via Gmail
+  # ════════════════════════════════════════════════════════════════════════
+  dispatch:
+    name: "🚀 Dispatch Emails"
+    runs-on: ubuntu-latest
+    if: |
+      (github.event_name == 'schedule' && (
+        github.event.schedule == '30 6 * * 1' ||
+        github.event.schedule == '30 6 * * 2' ||
+        github.event.schedule == '30 6 * * 3' ||
+        github.event.schedule == '30 6 * * 4'
+      )) ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'dispatch')
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout (pull latest state)
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+          ref: main
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Dispatch emails
+        working-directory: modules
+        env:
+          SENDER_EMAIL:       ${{ secrets.SENDER_EMAIL }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          OUTREACH_MODE:      ${{ github.event.inputs.outreach_mode || secrets.OUTREACH_MODE || 'internship' }}
+          MAX_PER_RUN:        ${{ secrets.MAX_PER_RUN || '5' }}
+          WEEKLY_CAP:         ${{ secrets.WEEKLY_CAP || '20' }}
+          DRY_RUN:            ${{ github.event.inputs.dry_run || 'false' }}
+          FORCE_WINDOW:       ${{ github.event.inputs.force_window || 'false' }}
+          ACTION:             dispatch
+        run: python orchestrator.py
+
+      - name: Commit state (CSV, Excel, logs, weekly count)
+        run: |
+          git config user.name  "outbound-bot[actions]"
+          git config user.email "outbound-bot@users.noreply.github.com"
+          git add state/
+          git diff --staged --quiet || git commit -m "bot: dispatch $(date -u +'%Y-%m-%dT%H:%M')"
+          git push
