@@ -301,7 +301,7 @@ def _call_groq(prompt: str, retries: int = 3) -> Optional[dict]:
 
     url = "https://api.groq.com/openai/v1/chat/completions"
     payload = json.dumps({
-        "model": "llama3-70b-8192",
+        "model": "llama-3.3-70b-versatile",
         "messages": [
             {"role": "system", "content": "You are an expert copywriter. Output ONLY valid JSON."},
             {"role": "user", "content": prompt}
