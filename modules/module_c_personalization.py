@@ -372,7 +372,7 @@ def _call_gemini(prompt: str, retries: int = 3) -> Optional[dict]:
                     import sys
                     sys.exit(1) # Immediately kill the action so you can re-run
                     
-                wait = 65 if attempt == 1 else 120
+                wait = 10 if attempt == 1 else 30
                 log.warning("Gemini 429 Block Reason: %s", body) 
                 log.warning("Gemini rate limit — sleeping %ds", wait)
                 time.sleep(wait)
