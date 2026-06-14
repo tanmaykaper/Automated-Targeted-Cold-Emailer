@@ -225,20 +225,31 @@ def _extract_linkedin_urls(results: list) -> list:
 # ══════════════════════════════════════════════════════════════════════════
 
 _li_client = None
+_li_client_failed = False  # The new kill switch
 
 def _get_li_client():
-    global _li_client
+    global _li_client, _li_client_failed
+    
+    # If we already got blocked this run, don't even try again. 
+    # Just fail instantly so the bot can move on.
+    if _li_client_failed:
+        return None
+        
     if _li_client is not None:
         return _li_client
+        
     if not LINKEDIN_USERNAME or not LINKEDIN_PASSWORD:
         return None
+        
     try:
         from linkedin_api import Linkedin
         _li_client = Linkedin(LINKEDIN_USERNAME, LINKEDIN_PASSWORD, debug=False)
         log.info("LinkedIn client ready")
         return _li_client
     except Exception as e:
-        log.warning("LinkedIn init: %s", e)
+        # We hit the CHALLENGE wall. Log it ONCE, flip the kill switch, and exit.
+        log.warning("LinkedIn init failed (IP blocked): %s", e)
+        _li_client_failed = True
         return None
 
 
