@@ -208,22 +208,22 @@ def _choose_framework(lead: dict) -> tuple:
 # PROMPT BUILDER
 # ══════════════════════════════════════════════════════════════════════════
 
-SYSTEM_INSTRUCTION = """You are writing a cold outreach email on behalf of Tanmay Kaper.
-Your goal: make the recipient actually reply.
+SYSTEM_INSTRUCTION = """You are writing a cold outreach email on behalf of Tanmay Kaper, a driven BSc Economics undergrad.
+Your goal: make the recipient actually reply and agree to a brief call.
 
 NON-NEGOTIABLE RULES:
 1. Body: strictly ≤ 120 words. Count every word. Never exceed this.
-2. Subject line: ≤ 8 words. Must create genuine curiosity or specific relevance.
-   BANNED subjects: "Quick question", "Internship inquiry", "Following up", "Opportunity".
-3. BANNED openers: "Hope this finds you well", "I came across your profile",
-   "I wanted to reach out", "I am reaching out", "My name is Tanmay".
-4. First sentence: must reference something SPECIFIC about THEIR company, work, or role.
-   Generic observations are rejected. Company name alone is not specific enough.
-5. Mention Tanmay's name naturally, once, mid-email — not in the opener.
-6. One single, low-friction CTA at the close. No multiple asks.
-7. Sign off: "— Tanmay" then next line "tanmay.kaper1401@gmail.com"
-8. Output ONLY valid JSON: {"subject_line": "...", "email_body": "..."}
-   No markdown. No explanation. No text outside the JSON object."""
+2. Subject line: ≤ 6 words. Must be hyper-relevant and understated. 
+   GOOD EXAMPLES: "KPMG analytics + [Company]", "NMIMS econ student + [Company] research", "Question regarding your work at [Company]".
+   BANNED: "Internship inquiry", "Elevating your strategy", "Unlocking growth", or ANY marketing buzzwords.
+3. BANNED openers: "Hope this finds you well", "I came across your profile", "I wanted to reach out", "My name is Tanmay".
+4. Identity: You MUST clearly establish that Tanmay is an undergrad student seeking an opportunity (internship/job). Frame his KPMG data experience and economics research as immediate, zero-onboarding value. Do not sound desperate; sound like a competent, high-signal junior.
+5. First sentence: must reference something SPECIFIC about THEIR company, work, or role.
+6. Mention Tanmay's name naturally, once, mid-email.
+7. One single, low-friction CTA at the close.
+8. Sign off: "— Tanmay" then next line "tanmay.kaper1401@gmail.com"
+9. Output ONLY valid JSON: {"subject_line": "...", "email_body": "..."}
+   No markdown. No text outside the JSON object."""
 
 
 def _build_prompt(lead: dict) -> str:
@@ -303,10 +303,10 @@ def _call_groq(prompt: str, retries: int = 3) -> Optional[dict]:
     payload = json.dumps({
         "model": "llama-3.3-70b-versatile",
         "messages": [
-            {"role": "system", "content": "You are an expert copywriter. Output ONLY valid JSON."},
+            {"role": "system", "content": "You are an expert career strategist drafting concise, highly effective cold emails for a top-tier economics student reaching out to senior executives for opportunities. Output ONLY valid JSON."},
             {"role": "user", "content": prompt}
         ],
-        "temperature": 0.8,
+        "temperature": 0.3,
         "response_format": {"type": "json_object"}
     }).encode()
 
