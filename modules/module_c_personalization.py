@@ -316,7 +316,8 @@ def _call_groq(prompt: str, retries: int = 3) -> Optional[dict]:
                 url, data=payload,
                 headers={
                     "Authorization": f"Bearer {GROQ_API_KEY}",
-                    "Content-Type": "application/json"
+                    "Content-Type": "application/json",
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
                 },
                 method="POST",
             )
