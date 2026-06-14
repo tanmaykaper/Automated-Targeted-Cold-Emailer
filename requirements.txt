@@ -11,7 +11,7 @@ pytz==2024.2
 
 # LinkedIn unofficial client (cookie-based, free)
 # Pinned to avoid breaking API changes
-linkedin-api==2.2.1
+linkedin-api
 
 # DNS verification for email inference (no paid API needed)
 dnspython==2.7.0
