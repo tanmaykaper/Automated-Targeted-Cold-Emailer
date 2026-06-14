@@ -367,6 +367,8 @@ def _call_gemini(prompt: str, retries: int = 3) -> Optional[dict]:
             body = e.read().decode()
             if e.code == 429:
                 wait = 65 if attempt == 1 else 120
+
+                log.warning("Gemini 429 Block Reason: %s", body) 
                 log.warning("Gemini rate limit — sleeping %ds", wait)
                 time.sleep(wait)
             elif e.code == 400:
