@@ -366,8 +366,13 @@ def _call_gemini(prompt: str, retries: int = 3) -> Optional[dict]:
         except urllib.error.HTTPError as e:
             body = e.read().decode()
             if e.code == 429:
+                # The Geolocation Kill Switch
+                if "limit: 0" in body:
+                    log.error("CRITICAL: GitHub assigned an EU server. Gemini Free Tier is blocked here. Failing run to trigger new IP.")
+                    import sys
+                    sys.exit(1) # Immediately kill the action so you can re-run
+                    
                 wait = 65 if attempt == 1 else 120
-
                 log.warning("Gemini 429 Block Reason: %s", body) 
                 log.warning("Gemini rate limit — sleeping %ds", wait)
                 time.sleep(wait)
