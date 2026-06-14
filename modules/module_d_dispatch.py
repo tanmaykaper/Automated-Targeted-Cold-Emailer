@@ -13,6 +13,8 @@ from datetime  import datetime, timezone as dt_tz
 from email.mime.multipart import MIMEMultipart
 from email.mime.text      import MIMEText
 from pathlib   import Path
+from email.mime.base import MIMEBase
+from email import encoders
 
 import pytz
 from dotenv import load_dotenv
@@ -122,19 +124,35 @@ def _send(to: str, subject: str, body: str) -> bool:
         log.error("GMAIL_APP_PASSWORD not set")
         return False
 
-    msg              = MIMEMultipart("alternative")
+    msg              = MIMEMultipart("mixed") # Changed to 'mixed' to support attachments
     msg["From"]      = SENDER_EMAIL
     msg["To"]        = to
     msg["Subject"]   = subject
     msg["Reply-To"]  = SENDER_EMAIL
     msg.attach(MIMEText(body, "plain", "utf-8"))
 
+    # --- NEW: Attachment Logic ---
+    resume_path = REPO_ROOT / "resume.pdf"
+    if resume_path.exists():
+        try:
+            with open(resume_path, "rb") as attachment:
+                part = MIMEBase("application", "octet-stream")
+                part.set_payload(attachment.read())
+            encoders.encode_base64(part)
+            part.add_header("Content-Disposition", f"attachment; filename=Tanmay_Kaper_Resume.pdf")
+            msg.attach(part)
+        except Exception as e:
+            log.error("Failed to attach resume: %s", e)
+    else:
+        log.warning("resume.pdf not found at %s. Sending email without attachment.", resume_path)
+    # -----------------------------
+
     try:
         with smtplib.SMTP("smtp.gmail.com", 587, timeout=15) as s:
             s.ehlo(); s.starttls(); s.ehlo()
             s.login(SENDER_EMAIL, GMAIL_APP_PASSWORD)
             s.sendmail(SENDER_EMAIL, to, msg.as_string())
-        log.info("✉  → %s | %s", to, subject)
+        log.info("✉  → %s | %s (Attached: %s)", to, subject, resume_path.exists())
         return True
     except smtplib.SMTPAuthenticationError:
         log.error("Gmail auth failed — check SENDER_EMAIL and GMAIL_APP_PASSWORD")
