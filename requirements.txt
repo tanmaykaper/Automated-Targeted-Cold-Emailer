@@ -1,0 +1,24 @@
+# ══════════════════════════════════════════════════════
+# Outbound Sniper — Python dependencies
+# Python 3.11 (pinned in Actions workflow)
+# ══════════════════════════════════════════════════════
+
+# Environment
+python-dotenv==1.0.1
+
+# Timezone handling
+pytz==2024.2
+
+# LinkedIn unofficial client (cookie-based, free)
+# Pinned to avoid breaking API changes
+linkedin-api==2.2.1
+
+# DNS verification for email inference (no paid API needed)
+dnspython==2.7.0
+
+# Excel export (pipeline.xlsx)
+openpyxl==3.1.5
+
+# HTTP — stdlib urllib used for Serper + Gemini (no extra dep needed)
+# smtplib — stdlib (no dep)
+# csv     — stdlib (no dep)
