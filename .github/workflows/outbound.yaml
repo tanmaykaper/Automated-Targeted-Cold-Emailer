@@ -165,8 +165,7 @@ jobs:
       - name: Draft emails via Gemini
         working-directory: modules
         env:
-          GEMINI_API_KEY:  ${{ secrets.GEMINI_API_KEY }}
-          GEMINI_MODEL:    ${{ secrets.GEMINI_MODEL || 'gemini-2.0-flash' }}
+          GROQ_API_KEY:    ${{ secrets.GROQ_API_KEY }}
           OUTREACH_MODE:   ${{ github.event.inputs.outreach_mode || secrets.OUTREACH_MODE || 'internship' }}
           ACTION:          draft
         run: python orchestrator.py
