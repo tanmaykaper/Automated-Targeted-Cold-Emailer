@@ -431,7 +431,7 @@ def run_drafting_pipeline(leads: list) -> list:
         enriched.append(lead)
         # Gemini free tier: 15 req/min → 4s gap keeps us safe
         if i < len(leads):
-            time.sleep(4.5)
+            time.sleep(10)
     return enriched
 
 
