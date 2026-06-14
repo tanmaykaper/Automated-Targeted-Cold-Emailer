@@ -101,7 +101,7 @@ def run_draft() -> dict:
             failed += 1
             log.warning("Draft failed — will retry next run")
         if i < len(candidates):
-            time.sleep(4.5)   # Gemini free tier: 15 req/min
+            time.sleep(10)   # Gemini free tier: 15 req/min
 
     stats = get_stats()
     export_excel()
