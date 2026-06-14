@@ -287,102 +287,65 @@ Write the email now. Output only JSON: {{"subject_line": "...", "email_body": ".
 
 
 # ══════════════════════════════════════════════════════════════════════════
-# GEMINI API CALL
+# GROQ API CALL (Replaces Gemini)
 # ══════════════════════════════════════════════════════════════════════════
 
 import urllib.request, urllib.error
 
-def _call_gemini(prompt: str, retries: int = 3) -> Optional[dict]:
-    if not GEMINI_API_KEY:
-        log.error("GEMINI_API_KEY not set")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
+
+def _call_groq(prompt: str, retries: int = 3) -> Optional[dict]:
+    if not GROQ_API_KEY:
+        log.error("GROQ_API_KEY not set")
         return None
 
+    url = "https://api.groq.com/openai/v1/chat/completions"
     payload = json.dumps({
-        "contents": [{"parts": [{"text": prompt}]}],
-        "generationConfig": {
-            "temperature":     0.88,   # High enough for personality, low enough for structure
-            "maxOutputTokens": 512,
-            "topP":            0.95,
-        },
-        "safetySettings": [
-            {"category": "HARM_CATEGORY_HARASSMENT",        "threshold": "BLOCK_NONE"},
-            {"category": "HARM_CATEGORY_HATE_SPEECH",       "threshold": "BLOCK_NONE"},
-            {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"},
+        "model": "llama3-70b-8192",
+        "messages": [
+            {"role": "system", "content": "You are an expert copywriter. Output ONLY valid JSON."},
+            {"role": "user", "content": prompt}
         ],
+        "temperature": 0.8,
+        "response_format": {"type": "json_object"}
     }).encode()
-
-    url = (
-        f"https://generativelanguage.googleapis.com/v1beta/models/"
-        f"{GEMINI_MODEL}:generateContent?key={GEMINI_API_KEY}"
-    )
 
     for attempt in range(1, retries + 1):
         try:
             req = urllib.request.Request(
                 url, data=payload,
-                headers={"Content-Type": "application/json"},
+                headers={
+                    "Authorization": f"Bearer {GROQ_API_KEY}",
+                    "Content-Type": "application/json"
+                },
                 method="POST",
             )
             with urllib.request.urlopen(req, timeout=30) as resp:
                 data = json.loads(resp.read())
 
-            # Extract text from Gemini response structure
-            raw = (
-                data.get("candidates", [{}])[0]
-                    .get("content", {})
-                    .get("parts", [{}])[0]
-                    .get("text", "")
-            ).strip()
-
-            # Strip markdown fences if present
-            raw = re.sub(r"^```(?:json)?\s*", "", raw)
-            raw = re.sub(r"\s*```$", "", raw)
-            # Strip anything before the first {
-            raw = raw[raw.find("{"):]
-
+            raw = data["choices"][0]["message"]["content"].strip()
             parsed = json.loads(raw)
+            
             assert "subject_line" in parsed and "email_body" in parsed, "Missing keys"
 
             word_count = len(parsed["email_body"].split())
             if word_count > 130:
                 log.warning("Body %d words — requesting tighter rewrite", word_count)
+                time.sleep(3)
                 tighten = (
-                    f"This email body is {word_count} words — cut to ≤120 words. "
-                    f"Keep the opening hook and the closing CTA. Remove filler. "
-                    f"Output only JSON: {{\"subject_line\": \"{parsed['subject_line']}\", \"email_body\": \"...\"}}\n\n"
+                    f"This is {word_count} words. Cut to ≤120 words. Return ONLY JSON: "
+                    f"{{\"subject_line\": \"{parsed['subject_line']}\", \"email_body\": \"...\"}}\n\n"
                     f"Original:\n{parsed['email_body']}"
                 )
-                tighter = _call_gemini(tighten, retries=1)
-                if tighter:
-                    return tighter
+                return _call_groq(tighten, retries=1)
 
             return parsed
 
-        except (json.JSONDecodeError, AssertionError) as e:
-            log.warning("Attempt %d parse error: %s", attempt, e)
-            if attempt < retries:
-                time.sleep(2 ** attempt)
-
         except urllib.error.HTTPError as e:
-            body = e.read().decode()
-            if e.code == 429:
-                # The Geolocation Kill Switch
-                if "limit: 0" in body:
-                    log.error("CRITICAL: GitHub assigned an EU server. Gemini Free Tier is blocked here. Failing run to trigger new IP.")
-                                      
-                wait = 10 if attempt == 1 else 30
-                log.warning("Gemini 429 Block Reason: %s", body) 
-                log.warning("Gemini rate limit — sleeping %ds", wait)
-                time.sleep(wait)
-            elif e.code == 400:
-                log.error("Gemini 400 bad request: %s", body[:200])
-                return None
-            else:
-                log.error("Gemini HTTP %d: %s", e.code, body[:200])
-                time.sleep(10)
-
+            log.error("Groq HTTP %d: %s", e.code, e.read().decode()[:200])
+            time.sleep(5)
         except Exception as e:
-            log.error("Gemini error attempt %d: %s", attempt, e)
+            log.error("Groq error attempt %d: %s", attempt, e)
             time.sleep(5)
 
     return None
@@ -393,11 +356,6 @@ def _call_gemini(prompt: str, retries: int = 3) -> Optional[dict]:
 # ══════════════════════════════════════════════════════════════════════════
 
 def draft_email(lead: dict) -> Optional[dict]:
-    """
-    Generate a personalised email draft for a single lead dict.
-    Returns {"subject_line": ..., "email_body": ...} or None on total failure.
-    Draft job is INDEPENDENT of source job — works on any Pending row.
-    """
     if lead.get("Drafted Email Body","").strip():
         return {
             "subject_line": lead.get("Drafted Email Subject",""),
@@ -409,7 +367,7 @@ def draft_email(lead: dict) -> Optional[dict]:
              fw_name, _region(lead), lead.get("Target Name","?"), lead.get("Company","?"))
 
     prompt = _build_prompt(lead)
-    result = _call_gemini(prompt)
+    result = _call_groq(prompt)
 
     if result:
         wc = len(result["email_body"].split())
@@ -421,11 +379,6 @@ def draft_email(lead: dict) -> Optional[dict]:
 
 
 def run_drafting_pipeline(leads: list) -> list:
-    """
-    Draft emails for a list of lead dicts.
-    Returns enriched list with Drafted Email Subject + Body populated.
-    Safe to call with leads from Module B (pending-without-draft).
-    """
     enriched = []
     for i, lead in enumerate(leads, 1):
         log.info("[%d/%d] Drafting for %s", i, len(leads), lead.get("Target Name","?"))
@@ -434,9 +387,11 @@ def run_drafting_pipeline(leads: list) -> list:
             lead["Drafted Email Subject"] = result["subject_line"]
             lead["Drafted Email Body"]    = result["email_body"]
         enriched.append(lead)
-        # Gemini free tier: 15 req/min → 4s gap keeps us safe
+        
+        # Groq free tier allows 30 requests/min. A 2.5s gap keeps us perfectly safe.
         if i < len(leads):
-            time.sleep(10)
+            import time
+            time.sleep(2.5)
     return enriched
 
 
