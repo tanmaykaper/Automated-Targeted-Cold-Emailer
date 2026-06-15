@@ -41,12 +41,15 @@ name: Outbound Sniper
 
 on:
   schedule:
-    - cron: "30 4 * * 1"   # Monday   04:30 UTC → source
-    - cron: "0  5 * * 1"   # Monday   05:00 UTC → draft
-    - cron: "30 6 * * 1"   # Monday   06:30 UTC → dispatch
-    - cron: "30 6 * * 2"   # Tuesday  06:30 UTC → dispatch
-    - cron: "30 6 * * 3"   # Wednesday 06:30 UTC → dispatch
-    - cron: "30 6 * * 4"   # Thursday 06:30 UTC → dispatch
+    - cron: "30 4 * * 1"   # Monday 04:30 UTC → source
+    - cron: "0 5 * * 1"    # Monday 05:00 UTC → draft
+    
+    # GLOBAL DISPATCH SWEEPER (Mon–Thu)
+    # 05:00 UTC = 10:30 AM IST (Catches India morning)
+    # 10:00 UTC = 3:30 PM IST (India afternoon) & 10:00 AM UK (UK morning)
+    # 15:00 UTC = 3:00 PM UK (UK afternoon) & 10:00 AM US East (NY morning)
+    # 19:00 UTC = 2:00 PM US East (NY afternoon) & 11:00 AM US West (SF morning)
+    - cron: "0 5,10,15,19 * * 1-4"
 
   workflow_dispatch:
     inputs:
