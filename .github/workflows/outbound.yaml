@@ -189,12 +189,7 @@ jobs:
     name: "🚀 Dispatch Emails"
     runs-on: ubuntu-latest
     if: |
-      (github.event_name == 'schedule' && (
-        github.event.schedule == '30 6 * * 1' ||
-        github.event.schedule == '30 6 * * 2' ||
-        github.event.schedule == '30 6 * * 3' ||
-        github.event.schedule == '30 6 * * 4'
-      )) ||
+      (github.event_name == 'schedule' && github.event.schedule == '0 5,10,15,19 * * 1-4') ||
       (github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'dispatch')
 
     permissions:
