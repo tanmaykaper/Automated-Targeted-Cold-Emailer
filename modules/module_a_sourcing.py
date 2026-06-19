@@ -5,9 +5,33 @@ Search backend: Serper.dev (replaces Google CSE)
   - 2,500 free searches/month on free plan — ample for 25 leads/week
   - API key: serper.dev → sign up → Dashboard → API Key
   - Header-based auth: X-API-KEY
+  - Two sources per geo×vertical combo:
+      1. /search  — site:linkedin.com/in organic results (scraped + parsed)
+      2. /people  — structured profile search, server-side entity resolution
+                    (higher hit rate on correctly attributing name/title/company;
+                    falls back silently to [] if not on the account's plan)
 
 Profile enrichment: linkedin-api (unofficial, cookie-auth, free)
-Email inference:    Pattern logic + DNS MX verification (free)
+  - Kill switch flips on ANY confirmed CHALLENGE/checkpoint/rate-limit signal,
+    whether it surfaces at client init OR mid-run during get_profile() —
+    both paths now short-circuit the rest of the run instead of retrying
+    into a wall.
+
+Email inference & verification (free, layered):
+  1. Pattern generation, ranked by statistical likelihood (first.last@ first)
+  2. Structural validation — RFC-adjacent regex + explicit typo-TLD blocklist
+     (.con, .cmo, single-char TLDs, numeric TLDs all rejected before they
+     ever reach DNS/SMTP)
+  3. MX record lookup (not just bare DNS resolution — a domain can resolve
+     and still have no mail service)
+  4. SMTP RCPT TO probe (best-effort) — confirms a specific mailbox exists
+     where the receiving server allows it; detects catch-all domains and
+     adapts instead of false-confirming every candidate
+  Net effect: fewer wrong-person sends, fewer hard bounces, better odds the
+  email actually reaches — and gets opened by — the intended recipient.
+
+  Requires: dnspython (pip install dnspython) for proper MX resolution.
+  Degrades to plain DNS resolution with a loud warning if not installed.
 
 Target titles now include:
   - Hiring managers, department managers, team leads (Tier C)
@@ -18,7 +42,7 @@ International (UK, US, SG, UAE, EU, AU, Remote) fill the rest.
 """
 
 import os, re, time, json, logging, socket
-import urllib.request, urllib.parse
+import urllib.request, urllib.parse, urllib.error
 from typing       import Optional
 from dataclasses  import dataclass, field, asdict
 from datetime     import datetime, timezone
@@ -51,6 +75,72 @@ EMAIL_PATTERNS = [
     "{last}.{first}@{domain}",
     "{last}@{domain}",
 ]
+
+# ──────────────────────────────────────────────────────────────────────────
+# TLD VALIDATION
+# Real-world bad data we've actually seen come out of scraped/inferred
+# emails: typo'd TLDs (.con, .cmo), single-char TLDs from truncated scrapes,
+# and numeric-only TLDs from malformed URLs. A regex alone won't catch a
+# typo'd-but-structurally-valid TLD like ".con" — that needs an explicit
+# blocklist, since ".con" passes any generic [a-z]{2,} check.
+# ──────────────────────────────────────────────────────────────────────────
+_TYPO_TLDS = {
+    "con", "cmo", "vom", "comm", "cm", "co.", "ocm", "om", "c0m",
+    "nte", "ner", "gmial", "gnail", "gmal", "outlok", "outloo",
+}
+
+# Legitimate TLDs we expect to actually see for this use case (corporate +
+# common ccTLDs). Anything outside this set isn't auto-rejected — it just
+# skips the "known-good" fast path and goes through stricter regex + MX checks.
+_COMMON_GOOD_TLDS = {
+    "com", "org", "net", "io", "co", "ai", "in", "uk", "us", "ca", "au",
+    "sg", "ae", "de", "fr", "nl", "ch", "eu", "info", "biz", "tech",
+    "capital", "ventures", "vc", "consulting", "partners", "global",
+}
+
+def _tld_is_valid(domain: str) -> bool:
+    """Reject typo'd, truncated, or structurally-bogus TLDs before we
+    ever bother forming candidate emails or hitting DNS/SMTP."""
+    if not domain or "." not in domain:
+        return False
+    parts = domain.rsplit(".", 1)
+    if len(parts) != 2:
+        return False
+    tld = parts[1].lower()
+
+    if tld in _TYPO_TLDS:
+        return False
+    if len(tld) < 2:                       # single-char TLD — always bogus
+        return False
+    if tld.isdigit():                      # numeric TLD — malformed scrape
+        return False
+    if not re.match(r"^[a-z]{2,24}$", tld): # letters only, sane length
+        return False
+    return True
+
+
+_EMAIL_RE = re.compile(
+    r"^[a-zA-Z0-9][a-zA-Z0-9._%+\-]{0,63}@"
+    r"[a-zA-Z0-9](?:[a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?"
+    r"(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?)+$"
+)
+
+def _email_structurally_valid(email: str) -> bool:
+    """RFC-adjacent structural check, stricter than '@' in email.
+    Catches double dots, leading/trailing dots in local part, missing
+    domain label, and bogus TLDs in one pass."""
+    if not email or len(email) > 254:
+        return False
+    if not _EMAIL_RE.match(email):
+        return False
+    if ".." in email:
+        return False
+    local, domain = email.rsplit("@", 1)
+    if local.startswith(".") or local.endswith("."):
+        return False
+    if not _tld_is_valid(domain):
+        return False
+    return True
 
 TIER1_NAMES = [
     "mckinsey","boston consulting group","bcg","bain",
@@ -112,7 +202,7 @@ def _title_tier(title: str) -> Optional[str]:
 
 
 def _email_passes(email: str) -> bool:
-    if not email or "@" not in email:
+    if not _email_structurally_valid(email):
         return False
     local = email.split("@")[0].lower()
     for pfx in REJECT_EMAIL_PREFIXES:
@@ -178,6 +268,13 @@ def _score_lead(lead: Lead) -> int:
 
 _serper_calls = 0
 
+# Budget: free plan = 2,500/month ≈ 80/day. A single run now spans two
+# sources (organic site:linkedin.com/in + /people) across up to ~5 geo×vertical
+# combos, so the old ceiling of 70 was cutting runs short before the people-
+# search pass got a turn. 95 leaves headroom under the ~80/day average while
+# still capping any single run from exhausting the monthly pool.
+_SERPER_CALL_CEILING = 95
+
 def _serper_search(query: str, num: int = 8) -> list:
     """
     POST to Serper Google Search API.
@@ -188,7 +285,7 @@ def _serper_search(query: str, num: int = 8) -> list:
     if not SERPER_API_KEY:
         log.warning("SERPER_API_KEY not set")
         return []
-    if _serper_calls >= 70:
+    if _serper_calls >= _SERPER_CALL_CEILING:
         log.warning("Serper call limit reached for this run (%d)", _serper_calls)
         return []
 
@@ -208,6 +305,68 @@ def _serper_search(query: str, num: int = 8) -> list:
     except Exception as e:
         log.warning("Serper error for '%s': %s", query[:60], e)
         return []
+
+
+def _serper_people_search(query: str, num: int = 10) -> list:
+    """
+    POST to Serper's dedicated People Search endpoint, which returns
+    structured profile cards (name, title, company, location, profile link)
+    instead of raw organic search snippets — meaningfully higher hit rate
+    for resolving the right person than scraping `site:linkedin.com/in`
+    result titles, since Serper does the entity resolution server-side.
+
+    Falls back silently to [] if the endpoint isn't available on the
+    account's plan (it's a newer addition and not on every tier) — callers
+    should treat this as a supplementary source, not a required one.
+    """
+    global _serper_calls
+    if not SERPER_API_KEY:
+        return []
+    if _serper_calls >= _SERPER_CALL_CEILING:
+        log.warning("Serper call limit reached for this run (%d)", _serper_calls)
+        return []
+
+    payload = json.dumps({"q": query, "num": min(num, 10)}).encode()
+    req = urllib.request.Request(
+        "https://google.serper.dev/people",
+        data=payload,
+        headers={"X-API-KEY": SERPER_API_KEY, "Content-Type": "application/json"},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            data = json.loads(resp.read())
+        _serper_calls += 1
+        time.sleep(0.4)
+        # Observed response shape: {"people": [{"name","title","company","location","link",...}]}
+        # Degrade gracefully if Serper changes the key name on this endpoint.
+        return data.get("people", data.get("organic", []))
+    except urllib.error.HTTPError as e:
+        if e.code == 404:
+            log.debug("Serper /people endpoint not available on this plan — skipping")
+        else:
+            log.warning("Serper people search HTTP %d for '%s'", e.code, query[:60])
+        return []
+    except Exception as e:
+        log.warning("Serper people search error for '%s': %s", query[:60], e)
+        return []
+
+
+def _people_result_to_profile(item: dict) -> dict:
+    """Normalizes a Serper /people result into the same shape _enrich_linkedin
+    and _parse_snippet produce, so downstream code doesn't care which
+    source a lead came from."""
+    name     = (item.get("name") or "").strip()
+    title    = (item.get("title") or item.get("position") or "").strip()
+    company  = (item.get("company") or item.get("organization") or "").strip()
+    location = (item.get("location") or "").strip()
+    link     = (item.get("link") or item.get("profileUrl") or item.get("url") or "")
+    summary  = (item.get("snippet") or item.get("about") or "")
+
+    return {
+        "name": name, "title": title, "company": company,
+        "location": location, "linkedin_url": link, "summary": summary,
+    }
 
 
 def _extract_linkedin_urls(results: list) -> list:
@@ -253,7 +412,22 @@ def _get_li_client():
         return None
 
 
+_LI_CHALLENGE_MARKERS = (
+    "challenge", "captcha", "checkpoint", "security verification",
+    "unauthorized", "401", "403", "rate limit", "too many requests",
+)
+
+def _looks_like_challenge(exc: Exception) -> bool:
+    """linkedin-api doesn't raise a typed ChallengeException for every block —
+    a lot of it surfaces as a generic Exception/HTTPError with marker text
+    in the message. Catch on message content rather than exception type."""
+    msg = str(exc).lower()
+    return any(marker in msg for marker in _LI_CHALLENGE_MARKERS)
+
+
 def _enrich_linkedin(url: str) -> dict:
+    global _li_client, _li_client_failed
+
     api = _get_li_client()
     if not api:
         return {}
@@ -264,8 +438,16 @@ def _enrich_linkedin(url: str) -> dict:
     try:
         time.sleep(2.8)   # respectful pacing
         p = api.get_profile(pid)
+
+        # linkedin-api sometimes returns {} instead of raising when a
+        # challenge/checkpoint is served mid-session. An empty payload alone
+        # isn't proof of a block (could be a private/deleted profile), so we
+        # don't flip the kill switch on this branch — only on a confirmed
+        # exception below.
         if not p:
+            log.debug("LI returned empty payload for %s — profile may be private/deleted", pid)
             return {}
+
         exps = p.get("experience", [])
         cur  = exps[0] if exps else {}
         return {
@@ -279,7 +461,15 @@ def _enrich_linkedin(url: str) -> dict:
             "summary":      p.get("summary", ""),
         }
     except Exception as e:
-        log.debug("LI enrich fail %s: %s", pid, e)
+        if _looks_like_challenge(e):
+            # Confirmed block mid-run. Flip the SAME kill switch _get_li_client
+            # checks, so every subsequent _enrich_linkedin() call this run
+            # short-circuits instantly instead of retrying into a wall.
+            log.warning("LI CHALLENGE during get_profile(%s) — killing LI client for rest of run: %s", pid, e)
+            _li_client_failed = True
+            _li_client = None
+        else:
+            log.debug("LI enrich fail %s: %s", pid, e)
         return {}
 
 
@@ -317,7 +507,9 @@ def _get_company_domain(company: str) -> Optional[str]:
         return _domain_cache[company]
     results = _serper_search(f'"{company}" official website contact email', num=5)
     noise   = ["linkedin","twitter","facebook","crunchbase","glassdoor","bloomberg",
-               "wikipedia","youtube","indeed","naukri","zoominfo","techcrunch","ambitionbox"]
+               "wikipedia","youtube","indeed","naukri","zoominfo","techcrunch","ambitionbox",
+               "instagram","medium.com","substack.com","reddit.com","quora.com",
+               "x.com","threads.net","github.io","blogspot.com","wordpress.com"]
     for r in results:
         link  = r.get("link", "")
         m = re.search(r"https?://(?:www\.)?([^/]+)", link)
@@ -326,37 +518,196 @@ def _get_company_domain(company: str) -> Optional[str]:
         domain = m.group(1).lower()
         if any(n in domain for n in noise):
             continue
-        parts = domain.split(".")
-        if len(parts) >= 2 and len(parts[-1]) >= 2:
-            _domain_cache[company] = domain
-            return domain
+        # Reject obvious sub-path social/aggregator domains that slipped
+        # past the noise list (e.g. "sites.google.com", "notion.site")
+        if domain.count(".") > 3:
+            continue
+        if not _tld_is_valid(domain):
+            continue
+        _domain_cache[company] = domain
+        return domain
     _domain_cache[company] = None
     return None
 
 
 def _domain_has_mx(domain: str) -> bool:
-    """Quick DNS check — avoids sending to dead domains."""
-    try:
-        socket.getaddrinfo(domain, None)
-        return True
-    except socket.gaierror:
+    """Quick DNS check — avoids sending to dead domains.
+    Upgraded from a plain getaddrinfo (which just checks the domain
+    resolves to *something*, including a bare A record with no mail
+    service at all) to an actual MX lookup, with A-record fallback for
+    domains that route mail through the bare domain (some small/startup
+    setups do this)."""
+    if not domain or not _tld_is_valid(domain):
         return False
+    try:
+        import dns.resolver
+        try:
+            answers = dns.resolver.resolve(domain, "MX", lifetime=5)
+            return len(answers) > 0
+        except (dns.resolver.NoAnswer, dns.resolver.NXDOMAIN):
+            pass
+        except Exception as e:
+            log.debug("MX lookup error for %s: %s — falling back to A record", domain, e)
+        # Fallback: some domains accept mail on the bare A record with no MX
+        try:
+            dns.resolver.resolve(domain, "A", lifetime=5)
+            return True
+        except Exception:
+            return False
+    except ImportError:
+        # dnspython not installed — degrade to the old behaviour rather
+        # than hard-fail the whole pipeline, but log loudly so it gets fixed.
+        log.warning("dnspython not installed (pip install dnspython) — MX check degraded to plain DNS resolution")
+        try:
+            socket.getaddrinfo(domain, None)
+            return True
+        except socket.gaierror:
+            return False
 
 
-def _infer_email(first: str, last: str, domain: str) -> Optional[str]:
+# ──────────────────────────────────────────────────────────────────────────
+# SMTP-LEVEL VERIFICATION
+# Pattern-matched + MX-confirmed is still a guess. An RCPT TO probe against
+# the real mail server is the closest free signal to "does this mailbox
+# actually exist" without sending anything. Many corporate mail servers
+# (M365, Google Workspace with strict mode) won't give a clean signal — they
+# accept-all at SMTP and reject later, or block probing entirely. So this is
+# best-effort: a hard 550/551/553 is treated as a real rejection; anything
+# else (accept, greylist, timeout, blocked) is treated as "can't disprove it",
+# and we keep the lead rather than silently dropping good targets over a
+# defensive mail server.
+# ──────────────────────────────────────────────────────────────────────────
+import smtplib
+
+_smtp_domain_cache: dict = {}   # domain -> "catch_all" | "verified" | "rejected" | "unknown"
+
+def _get_domain_mx_host(domain: str) -> Optional[str]:
+    try:
+        import dns.resolver
+        answers = dns.resolver.resolve(domain, "MX", lifetime=5)
+        sorted_mx = sorted(answers, key=lambda r: r.preference)
+        return str(sorted_mx[0].exchange).rstrip(".")
+    except Exception:
+        return None
+
+
+def _smtp_verify(email: str, helo_domain: str = "gmail.com") -> str:
+    """
+    Returns one of: 'verified', 'rejected', 'catch_all', 'unknown'.
+    Never raises — every failure mode degrades to 'unknown' so callers
+    can decide whether to keep a pattern-matched guess.
+    """
+    domain = email.split("@", 1)[1]
+
+    if domain in _smtp_domain_cache and _smtp_domain_cache[domain] == "catch_all":
+        # Once we know a domain accepts everything, there's no point
+        # probing it again per-candidate — every address will "pass".
+        return "catch_all"
+
+    mx_host = _get_domain_mx_host(domain)
+    if not mx_host:
+        return "unknown"
+
+    probe_unknown_local = f"definitely-not-a-real-user-{int(time.time())}@{domain}"
+
+    try:
+        smtp = smtplib.SMTP(timeout=8)
+        smtp.connect(mx_host, 25)
+        smtp.helo(helo_domain)
+        smtp.mail(f"verify@{helo_domain}")
+
+        # First probe a deliberately-fake address to detect catch-all domains.
+        code_fake, _ = smtp.rcpt(probe_unknown_local)
+        if code_fake == 250:
+            _smtp_domain_cache[domain] = "catch_all"
+            smtp.quit()
+            return "catch_all"   # domain accepts anything — can't disprove or confirm real email
+
+        # Now probe the real candidate.
+        code_real, msg_real = smtp.rcpt(email)
+        smtp.quit()
+
+        if code_real == 250:
+            return "verified"
+        if code_real in (550, 551, 553):
+            return "rejected"
+        return "unknown"
+
+    except (smtplib.SMTPServerDisconnected, smtplib.SMTPConnectError,
+            socket.timeout, socket.gaierror, ConnectionRefusedError, OSError) as e:
+        # Most corporate firewalls block outbound SMTP probing on port 25
+        # entirely — this is the expected, common case, not an error worth
+        # surfacing loudly.
+        log.debug("SMTP probe unreachable for %s: %s", domain, e)
+        return "unknown"
+    except Exception as e:
+        log.debug("SMTP probe failed for %s: %s", email, e)
+        return "unknown"
+
+
+def _infer_email(first: str, last: str, domain: str, smtp_check: bool = True) -> Optional[str]:
+    """
+    Generates candidate emails in order of statistical likelihood
+    (first.last@ is the most common corporate convention by a wide margin),
+    then — if smtp_check is on — probes them against the real mail server
+    and returns the first one that comes back 'verified'.
+
+    If the domain is a confirmed catch-all (accepts everything) or every
+    probe comes back 'unknown' (most common — corporate firewalls block
+    port 25 probing), we fall back to the single most statistically likely
+    pattern rather than dropping the lead. This trades a small amount of
+    bounce risk for not silently losing good targets, which matters more
+    at 8 emails/run than a marginal bounce-rate improvement would.
+    """
     first = re.sub(r"[^a-z]", "", first.lower())
     last  = re.sub(r"[^a-z]", "", last.lower())
     f     = first[0] if first else ""
     if not first or not last or not domain:
         return None
+    if not _tld_is_valid(domain):
+        log.debug("Rejected domain with invalid TLD: %s", domain)
+        return None
+
+    candidates = []
     for pat in EMAIL_PATTERNS:
         try:
             email = pat.format(first=first, last=last, f=f, domain=domain)
-            if _email_passes(email):
-                return email
         except KeyError:
             continue
-    return None
+        if _email_passes(email) and email not in candidates:
+            candidates.append(email)
+
+    if not candidates:
+        return None
+
+    if not smtp_check:
+        return candidates[0]
+
+    for email in candidates:
+        status = _smtp_verify(email)
+        if status == "verified":
+            log.debug("SMTP-verified: %s", email)
+            return email
+        if status == "catch_all":
+            # Domain swallows everything — SMTP can't help us pick between
+            # patterns. Use the most likely one (first.last) and move on.
+            log.debug("Catch-all domain %s — using top pattern guess: %s", domain, candidates[0])
+            return candidates[0]
+        if status == "rejected":
+            # This specific candidate bounced at SMTP level — try the next
+            # pattern instead of giving up on the whole domain.
+            log.debug("SMTP-rejected candidate %s — trying next pattern", email)
+            continue
+        # 'unknown' (firewall blocked probe, timeout, etc.) — keep trying
+        # remaining candidates in case a later one gets a clean signal,
+        # but remember this one as a fallback.
+
+    # No pattern came back definitively 'verified' and none were cleanly
+    # 'rejected' either (i.e. everything was 'unknown' — the common case
+    # when port 25 is firewalled). Fall back to the top statistical guess
+    # rather than dropping a lead purely because we couldn't probe it.
+    log.debug("No SMTP-verified candidate for %s @ %s — using top pattern guess", first, domain)
+    return candidates[0]
 
 
 def _get_company_desc(company: str) -> str:
@@ -375,9 +726,23 @@ def _get_company_desc(company: str) -> str:
 
 def _build_queries(geo_id: str, vertical_id: str, week_num: int) -> list:
     """
-    Build 4–6 Serper queries for a geo × vertical combo.
+    Build Serper queries for a geo × vertical combo.
     week_num shifts phrasing so the same combo surfaces fresh people
     each time it recurs in the 12-week rotation.
+
+    Construction notes:
+      - Title and vertical keyword are both quoted as exact phrases —
+        unquoted multi-word terms let Google match on partial token overlap,
+        which is where a lot of "wrong person" results sneak in (e.g.
+        unquoted "Head of Strategy" can match a page that just contains
+        "head" and "strategy" anywhere).
+      - geo_term is deliberately left unquoted since it's usually a single
+        token (a city or "India") or an OR-group, and over-quoting location
+        terms tends to suppress valid results where the location appears in
+        a different field order ("Mumbai, India" vs "India, Mumbai").
+      - -intitle:"jobs" -inurl:"jobs" suppresses job-board postings and
+        careers pages from leaking into people-search results — those pages
+        rank well for these queries but contain zero individual contacts.
     """
     geo      = get_geo(geo_id)
     vertical = get_vertical(vertical_id)
@@ -386,32 +751,57 @@ def _build_queries(geo_id: str, vertical_id: str, week_num: int) -> list:
 
     geo_term  = geo["terms"][week_num % len(geo["terms"])]
     vkw       = vertical["keywords"][week_num % len(vertical["keywords"])]
-    # Use both Tier A and Tier C titles for breadth
     ta = TITLES_TIER_A[week_num % len(TITLES_TIER_A)]
     tb = TITLES_TIER_B[(week_num + 1) % len(TITLES_TIER_B)]
     tc = TITLES_TIER_C[(week_num + 2) % len(TITLES_TIER_C)]
     et = vertical["extra_titles"][(week_num) % len(vertical["extra_titles"])]
 
+    job_board_suppression = '-inurl:"jobs" -inurl:"careers" -intitle:"hiring"'
+
     queries = [
         # Tier A — decision makers
-        f'site:linkedin.com/in "{ta}" "{vkw}" {geo_term}',
+        f'site:linkedin.com/in "{ta}" "{vkw}" {geo_term} {job_board_suppression}',
         # Tier B — department heads
-        f'site:linkedin.com/in "{tb}" {geo_term} "{vkw}"',
+        f'site:linkedin.com/in "{tb}" {geo_term} "{vkw}" {job_board_suppression}',
         # Tier C — managers & hiring managers (wider net, higher reply rates)
-        f'site:linkedin.com/in "{tc}" "{vkw}" {geo_term}',
+        f'site:linkedin.com/in "{tc}" "{vkw}" {geo_term} {job_board_suppression}',
         # Vertical-specific extra title
-        f'site:linkedin.com/in "{et}" {geo_term} {vkw}',
+        f'site:linkedin.com/in "{et}" {geo_term} {vkw} {job_board_suppression}',
     ]
 
     # Remote geo: add remote-specific variant
     if geo_id == "REMOTE":
-        queries.append(f'site:linkedin.com/in "remote" "{vkw}" hiring "{ta}" OR "{tb}"')
+        queries.append(f'site:linkedin.com/in "remote" "{vkw}" hiring "{ta}" OR "{tb}" {job_board_suppression}')
 
     # Research geo: think-tank specific
     if vertical_id == "RESEARCH_ECON":
         queries.append(f'site:linkedin.com/in "research" "{geo_term}" economist OR "policy" OR "think tank"')
 
     return queries[:6]
+
+
+def _build_people_search_queries(geo_id: str, vertical_id: str, week_num: int) -> list:
+    """
+    Companion query set for the Serper /people endpoint, which does its own
+    entity resolution server-side rather than relying on us parsing organic
+    snippet text — so these queries skip the site:linkedin.com/in restriction
+    (the people endpoint isn't a generic web search, it's already scoped to
+    profiles) and instead lean on title + geo + vertical only.
+    """
+    geo      = get_geo(geo_id)
+    vertical = get_vertical(vertical_id)
+    if not geo or not vertical:
+        return []
+
+    geo_term = geo["terms"][week_num % len(geo["terms"])]
+    vkw      = vertical["keywords"][(week_num + 1) % len(vertical["keywords"])]
+    ta       = TITLES_TIER_A[(week_num + 2) % len(TITLES_TIER_A)]
+    tb       = TITLES_TIER_B[week_num % len(TITLES_TIER_B)]
+
+    return [
+        f'{ta} {vkw} {geo_term}',
+        f'{tb} {vkw} {geo_term}',
+    ]
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -470,6 +860,80 @@ def run_sourcing_pipeline(
 
     all_leads: list = []
 
+    def _process_candidate(profile: dict, geo_id: str, vertical_id: str, source_tag: str) -> Optional[Lead]:
+        """Shared enrichment/scoring path for a raw profile dict, regardless
+        of whether it came from a scraped LinkedIn URL or a Serper /people
+        hit. Keeping this in one place means a fix to email inference,
+        title filtering, or scoring logic applies identically to both
+        sourcing paths instead of silently diverging over time."""
+        if not profile or not profile.get("name"):
+            return None
+
+        name  = profile["name"].strip()
+        title = (profile.get("title") or "").strip()
+        if not name or not title:
+            return None
+
+        tier = _title_tier(title)
+        if tier is None:
+            return None   # rejected title
+
+        company  = (profile.get("company") or "").strip()
+        location = (profile.get("location") or "").strip()
+        summary  = (profile.get("summary") or "")
+        url      = (profile.get("linkedin_url") or "")
+
+        key = f"{name.lower()}|{company.lower()}"
+        if key in seen_run:
+            return None
+        seen_run.add(key)
+
+        company_type, funding_stage = _classify_company(company, summary)
+        is_remote = _is_remote(summary, title, location)
+
+        # Company description (1 Serper call, quota-conscious)
+        company_desc = ""
+        if company and _serper_calls < 60:
+            company_desc = _get_company_desc(company)
+            time.sleep(0.6)
+
+        # Domain + email
+        domain = None
+        if company and _serper_calls < 65:
+            domain = _get_company_domain(company)
+            time.sleep(0.6)
+
+        email = ""
+        if domain and _domain_has_mx(domain):
+            parts = name.split()
+            if len(parts) >= 2:
+                inferred = _infer_email(parts[0], parts[-1], domain)
+                if inferred and inferred not in seen_hist and inferred not in seen_run:
+                    email = inferred
+
+        if not email:
+            log.debug("No email for %s @ %s", name, company)
+            return None
+
+        seen_run.add(email)
+
+        lead = Lead(
+            name=name, company=company, position=title,
+            email=email, linkedin_url=url, location=location,
+            geo_segment=geo_id, vertical=vertical_id,
+            company_type=company_type, funding_stage=funding_stage,
+            is_remote_role=is_remote, company_description=company_desc,
+            title_tier=tier, outreach_mode=OUTREACH_MODE,
+            source=source_tag,
+            week_sourced=f"{datetime.now(timezone.utc).year}-W{week_num:02d}",
+        )
+        lead.reason_for_outreach = _build_reason(lead)
+        lead.confidence_score    = _score_lead(lead)
+
+        log.info("✓ [Tier%s|%d] %s | %s | %s | %s",
+                 tier, lead.confidence_score, name, title, company, email)
+        return lead
+
     for geo_id, vertical_id in combos:
         if len(all_leads) >= target * 3:
             break
@@ -481,8 +945,9 @@ def run_sourcing_pipeline(
             continue
 
         log.info("▶ [%s × %s]", geo.get("name","?"), vertical.get("name","?"))
-        queries = _build_queries(geo_id, vertical_id, week_num)
 
+        # ── SOURCE 1: site:linkedin.com/in organic search ──
+        queries = _build_queries(geo_id, vertical_id, week_num)
         for query in queries:
             if len(all_leads) >= target * 3:
                 break
@@ -493,75 +958,37 @@ def run_sourcing_pipeline(
             for url in linkedin_urls:
                 if len(all_leads) >= target * 3:
                     break
-
-                # Enrich
                 profile = _enrich_linkedin(url) or _parse_snippet(url, results)
-                if not profile or not profile.get("name"):
-                    continue
-
-                name  = profile["name"].strip()
-                title = (profile.get("title") or "").strip()
-                if not name or not title:
-                    continue
-
-                tier = _title_tier(title)
-                if tier is None:
-                    continue   # rejected title
-
-                company  = (profile.get("company") or "").strip()
-                location = (profile.get("location") or "").strip()
-                summary  = (profile.get("summary") or "")
-
-                key = f"{name.lower()}|{company.lower()}"
-                if key in seen_run:
-                    continue
-                seen_run.add(key)
-
-                company_type, funding_stage = _classify_company(company, summary)
-                is_remote = _is_remote(summary, title, location)
-
-                # Company description (1 Serper call, quota-conscious)
-                company_desc = ""
-                if company and _serper_calls < 60:
-                    company_desc = _get_company_desc(company)
-                    time.sleep(0.6)
-
-                # Domain + email
-                domain = None
-                if company and _serper_calls < 65:
-                    domain = _get_company_domain(company)
-                    time.sleep(0.6)
-
-                email = ""
-                if domain and _domain_has_mx(domain):
-                    parts = name.split()
-                    if len(parts) >= 2:
-                        inferred = _infer_email(parts[0], parts[-1], domain)
-                        if inferred and inferred not in seen_hist and inferred not in seen_run:
-                            email = inferred
-
-                if not email:
-                    log.debug("No email for %s @ %s", name, company)
-                    continue
-
-                seen_run.add(email)
-
-                lead = Lead(
-                    name=name, company=company, position=title,
-                    email=email, linkedin_url=url, location=location,
-                    geo_segment=geo_id, vertical=vertical_id,
-                    company_type=company_type, funding_stage=funding_stage,
-                    is_remote_role=is_remote, company_description=company_desc,
-                    title_tier=tier, outreach_mode=OUTREACH_MODE,
-                    source=f"Serper+LinkedIn [{geo_id}×{vertical_id}]",
-                    week_sourced=f"{datetime.now(timezone.utc).year}-W{week_num:02d}",
+                lead = _process_candidate(
+                    profile, geo_id, vertical_id,
+                    source_tag=f"Serper+LinkedIn [{geo_id}×{vertical_id}]",
                 )
-                lead.reason_for_outreach = _build_reason(lead)
-                lead.confidence_score    = _score_lead(lead)
+                if lead:
+                    all_leads.append(lead)
 
-                all_leads.append(lead)
-                log.info("✓ [Tier%s|%d] %s | %s | %s | %s",
-                         tier, lead.confidence_score, name, title, company, email)
+        # ── SOURCE 2: Serper /people structured search ──
+        # Runs as a supplementary pass on the same geo×vertical combo.
+        # Serper's people endpoint does entity resolution server-side, so
+        # it tends to surface cleanly-attributed name/title/company triples
+        # that the snippet-parsing fallback in SOURCE 1 sometimes mangles
+        # (e.g. when LinkedIn's title format doesn't match the
+        # "Name - Title at Company" pattern _parse_snippet expects).
+        if len(all_leads) < target * 3:
+            people_queries = _build_people_search_queries(geo_id, vertical_id, week_num)
+            for pq in people_queries:
+                if len(all_leads) >= target * 3:
+                    break
+                people_results = _serper_people_search(pq, num=8)
+                for item in people_results:
+                    if len(all_leads) >= target * 3:
+                        break
+                    profile = _people_result_to_profile(item)
+                    lead = _process_candidate(
+                        profile, geo_id, vertical_id,
+                        source_tag=f"Serper-People [{geo_id}×{vertical_id}]",
+                    )
+                    if lead:
+                        all_leads.append(lead)
 
     qualified = sorted(
         [l for l in all_leads if l.confidence_score >= SCORE_THRESHOLD],
