@@ -61,7 +61,7 @@ load_dotenv()
 
 import sys, pathlib
 sys.path.insert(0, str(pathlib.Path(__file__).parent))
-from config import TANMAY, MODE_CONTEXT, OUTREACH_MODE
+from config import TANMAY, MODE_CONTEXT, OUTREACH_MODE, DRAFTS_PER_RUN, WEEKLY_DRAFT_CAP
 
 log = logging.getLogger(__name__)
 
@@ -74,19 +74,11 @@ GEMINI_URL     = (
 
 # ══════════════════════════════════════════════════════════════════════════
 # CADENCE
-# Updated targets: 8 drafted per sourcing run, 30/week overall.
-# WEEKLY_TARGET in config.py still governs Module A's sourcing volume per
-# run — this file doesn't own that number, but run_drafting_pipeline() is
-# the natural checkpoint to enforce a hard per-call ceiling on drafting
-# volume regardless of how many leads Module A hands it, so a config drift
-# upstream can't silently blow past the intended cadence on the Module C
-# side (API cost + rate-limit exposure scales with drafts, not just sourced
-# leads).
+# DRAFTS_PER_RUN and WEEKLY_DRAFT_CAP now live in config.py (single source
+# of truth — see config.py's CADENCE section for the full rationale on why
+# SOURCE/DRAFT/SEND are three independent volumes, not one number reused).
+# Imported above, not redefined here.
 # ══════════════════════════════════════════════════════════════════════════
-DRAFTS_PER_RUN   = 8     # hard cap per run_drafting_pipeline() call
-WEEKLY_DRAFT_CAP = 30    # informational — enforced by caller's scheduling cadence
-                          # (e.g. 8/run × ~4 runs/week ≈ 32, trimmed to 30 by
-                          # whichever run would push the week over the cap)
 
 
 # ══════════════════════════════════════════════════════════════════════════
