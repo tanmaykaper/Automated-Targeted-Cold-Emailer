@@ -218,8 +218,8 @@ jobs:
           SENDER_EMAIL:       ${{ secrets.SENDER_EMAIL }}
           GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
           OUTREACH_MODE:      ${{ github.event.inputs.outreach_mode || secrets.OUTREACH_MODE || 'internship' }}
-          MAX_PER_RUN:        ${{ secrets.MAX_PER_RUN || '5' }}
-          WEEKLY_CAP:         ${{ secrets.WEEKLY_CAP || '20' }}
+          MAX_PER_RUN:        ${{ secrets.MAX_PER_RUN || '10' }}
+          WEEKLY_CAP:         ${{ secrets.WEEKLY_CAP || '40' }}
           DRY_RUN:            ${{ github.event.inputs.dry_run || 'false' }}
           FORCE_WINDOW:       ${{ github.event.inputs.force_window || 'false' }}
           ACTION:             dispatch
