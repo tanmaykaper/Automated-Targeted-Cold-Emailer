@@ -19,9 +19,9 @@ assert OUTREACH_MODE in ("internship", "job"), \
 # ══════════════════════════════════════════════════════════════════════════
 # CADENCE
 # ══════════════════════════════════════════════════════════════════════════
-WEEKLY_TARGET   = int(os.getenv("WEEKLY_TARGET",   "25"))  # leads sourced per week
-WEEKLY_CAP      = int(os.getenv("WEEKLY_CAP",      "20"))  # max emails SENT per week
-MAX_PER_RUN     = int(os.getenv("MAX_PER_RUN",     "5"))   # per dispatch run (4 runs × 5 = 20)
+WEEKLY_TARGET   = int(os.getenv("WEEKLY_TARGET",   "30"))  # leads sourced per week
+WEEKLY_CAP      = int(os.getenv("WEEKLY_CAP",      "32"))  # max emails SENT per week
+MAX_PER_RUN     = int(os.getenv("MAX_PER_RUN",     "8"))   # per dispatch run (4 runs × 5 = 20)
 SCORE_THRESHOLD = int(os.getenv("SCORE_THRESHOLD", "55"))  # lower = wider net (was 65)
 
 # ══════════════════════════════════════════════════════════════════════════
