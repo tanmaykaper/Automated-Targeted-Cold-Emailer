@@ -18,11 +18,54 @@ assert OUTREACH_MODE in ("internship", "job"), \
 
 # ══════════════════════════════════════════════════════════════════════════
 # CADENCE
+# Three independent pipeline stages, each with its OWN volume — these are
+# NOT the same number wearing different hats, and must not be collapsed
+# into one. Sourcing a wide pool, drafting a focused subset of it, and
+# sending an even smaller approved subset of THAT are deliberately
+# different funnel widths:
+#
+#   SOURCE  (Module A)  →  WEEKLY_TARGET / SCORE_THRESHOLD
+#       How many qualified leads get sourced+scored per week. This is the
+#       top of the funnel — wider than what actually gets drafted, so
+#       there's always a backlog of qualified-but-not-yet-drafted leads
+#       sitting in "Pending" rather than the drafting stage starving.
+#
+#   DRAFT   (Module C)   →  DRAFTS_PER_RUN / WEEKLY_DRAFT_CAP
+#       How many of those sourced leads get an AI-drafted email per run
+#       and per week. Deliberately ≤ WEEKLY_TARGET — sourcing stays ahead
+#       of drafting on purpose, so a slow week of replies/approvals doesn't
+#       leave drafting with nothing queued.
+#
+#   SEND    (Module D)   →  MAX_PER_RUN / WEEKLY_CAP
+#       How many *approved* emails actually go out per dispatch run and
+#       per week — the human-in-the-loop bottleneck. This is the real
+#       outbound volume ceiling and the one that matters for deliverability/
+#       reputation; it is intentionally the smallest of the three.
+#
+# Sanity ordering this file enforces: WEEKLY_TARGET ≥ WEEKLY_DRAFT_CAP ≥
+# WEEKLY_CAP. If you change one, check the others still make sense — e.g.
+# raising WEEKLY_DRAFT_CAP above WEEKLY_TARGET just means most weeks you'll
+# draft against a thinner backlog than the cap implies.
 # ══════════════════════════════════════════════════════════════════════════
-WEEKLY_TARGET   = int(os.getenv("WEEKLY_TARGET",   "30"))  # leads sourced per week
-WEEKLY_CAP      = int(os.getenv("WEEKLY_CAP",      "32"))  # max emails SENT per week
-MAX_PER_RUN     = int(os.getenv("MAX_PER_RUN",     "8"))   # per dispatch run (4 runs × 5 = 20)
+
+# ── SOURCE (Module A) ──
+WEEKLY_TARGET   = int(os.getenv("WEEKLY_TARGET",   "30"))  # leads sourced+scored per week
 SCORE_THRESHOLD = int(os.getenv("SCORE_THRESHOLD", "55"))  # lower = wider net (was 65)
+
+# ── DRAFT (Module C) ──
+DRAFTS_PER_RUN   = int(os.getenv("DRAFTS_PER_RUN",   "8"))   # AI drafts generated per run_drafting_pipeline() call
+WEEKLY_DRAFT_CAP = int(os.getenv("WEEKLY_DRAFT_CAP", "30"))  # informational ceiling — enforced via scheduling
+                                                               # cadence (e.g. 8/run × ~4 runs/week ≈ 32, the
+                                                               # 4th run of the week trims to stay ≤ 30)
+
+# ── SEND (Module D) ──
+MAX_PER_RUN     = int(os.getenv("MAX_PER_RUN",     "8"))   # approved emails sent per dispatch run
+WEEKLY_CAP      = int(os.getenv("WEEKLY_CAP",      "32"))  # max emails SENT per week (4 runs × 8 = 32)
+
+assert WEEKLY_TARGET >= WEEKLY_DRAFT_CAP, (
+    f"WEEKLY_TARGET ({WEEKLY_TARGET}) should stay ≥ WEEKLY_DRAFT_CAP ({WEEKLY_DRAFT_CAP}) "
+    "so sourcing keeps a backlog ahead of drafting — otherwise drafting runs dry."
+)
 
 # ══════════════════════════════════════════════════════════════════════════
 # CANDIDATE PERSONA
@@ -145,6 +188,26 @@ REJECT_EMAIL_PREFIXES = [
     "admin", "general", "enquiry", "press", "media",
     "sales", "marketing", "billing", "legal", "compliance", "privacy",
 ]
+
+# ══════════════════════════════════════════════════════════════════════════
+# EMAIL VALIDATION  (Module A — sourcing/inference layer)
+# ══════════════════════════════════════════════════════════════════════════
+# Typo'd / structurally-bogus TLDs to reject before a candidate email is
+# ever formed. Centralized here (rather than hardcoded in module_a) so a
+# newly-noticed typo pattern can be added in one place.
+REJECT_TLDS = [
+    "con", "cmo", "vom", "comm", "cm", "co.", "ocm", "om", "c0m",
+    "nte", "ner", "gmial", "gnail", "gmal", "outlok", "outloo",
+]
+
+# SMTP RCPT TO verification — best-effort mailbox existence probe.
+# Many corporate mail servers block outbound probing on port 25 entirely
+# (most common outcome: 'unknown'), so this is a confidence booster, not a
+# guarantee — see module_a_sourcing._smtp_verify() for the full fallback
+# logic when a probe is inconclusive.
+SMTP_VERIFY_ENABLED = os.getenv("SMTP_VERIFY_ENABLED", "true").lower() == "true"
+SMTP_VERIFY_TIMEOUT = int(os.getenv("SMTP_VERIFY_TIMEOUT", "8"))   # seconds per probe
+SMTP_HELO_DOMAIN    = os.getenv("SMTP_HELO_DOMAIN", "gmail.com")   # domain used in SMTP HELO/MAIL FROM
 
 # ══════════════════════════════════════════════════════════════════════════
 # GEOGRAPHIC SEGMENTS
