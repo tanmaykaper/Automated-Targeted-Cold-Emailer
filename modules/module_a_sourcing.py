@@ -55,7 +55,8 @@ sys.path.insert(0, str(pathlib.Path(__file__).parent))
 from config import (
     OUTREACH_MODE, SCORE_THRESHOLD, WEEKLY_TARGET,
     ALL_TARGET_TITLES, TITLES_TIER_A, TITLES_TIER_B, TITLES_TIER_C,
-    REJECT_TITLES, REJECT_EMAIL_PREFIXES,
+    REJECT_TITLES, REJECT_EMAIL_PREFIXES, REJECT_TLDS,
+    SMTP_VERIFY_ENABLED, SMTP_VERIFY_TIMEOUT, SMTP_HELO_DOMAIN,
     get_this_weeks_segments, get_geo, get_vertical, MODE_CONTEXT,
 )
 
@@ -83,11 +84,12 @@ EMAIL_PATTERNS = [
 # and numeric-only TLDs from malformed URLs. A regex alone won't catch a
 # typo'd-but-structurally-valid TLD like ".con" — that needs an explicit
 # blocklist, since ".con" passes any generic [a-z]{2,} check.
+#
+# The blocklist itself (REJECT_TLDS) now lives in config.py so a newly
+# noticed typo pattern gets added in one place rather than drifting between
+# modules.
 # ──────────────────────────────────────────────────────────────────────────
-_TYPO_TLDS = {
-    "con", "cmo", "vom", "comm", "cm", "co.", "ocm", "om", "c0m",
-    "nte", "ner", "gmial", "gnail", "gmal", "outlok", "outloo",
-}
+_TYPO_TLDS = set(REJECT_TLDS)
 
 # Legitimate TLDs we expect to actually see for this use case (corporate +
 # common ccTLDs). Anything outside this set isn't auto-rejected — it just
@@ -591,12 +593,13 @@ def _get_domain_mx_host(domain: str) -> Optional[str]:
         return None
 
 
-def _smtp_verify(email: str, helo_domain: str = "gmail.com") -> str:
+def _smtp_verify(email: str, helo_domain: str = None) -> str:
     """
     Returns one of: 'verified', 'rejected', 'catch_all', 'unknown'.
     Never raises — every failure mode degrades to 'unknown' so callers
     can decide whether to keep a pattern-matched guess.
     """
+    helo_domain = helo_domain or SMTP_HELO_DOMAIN
     domain = email.split("@", 1)[1]
 
     if domain in _smtp_domain_cache and _smtp_domain_cache[domain] == "catch_all":
@@ -611,7 +614,7 @@ def _smtp_verify(email: str, helo_domain: str = "gmail.com") -> str:
     probe_unknown_local = f"definitely-not-a-real-user-{int(time.time())}@{domain}"
 
     try:
-        smtp = smtplib.SMTP(timeout=8)
+        smtp = smtplib.SMTP(timeout=SMTP_VERIFY_TIMEOUT)
         smtp.connect(mx_host, 25)
         smtp.helo(helo_domain)
         smtp.mail(f"verify@{helo_domain}")
@@ -645,7 +648,7 @@ def _smtp_verify(email: str, helo_domain: str = "gmail.com") -> str:
         return "unknown"
 
 
-def _infer_email(first: str, last: str, domain: str, smtp_check: bool = True) -> Optional[str]:
+def _infer_email(first: str, last: str, domain: str, smtp_check: bool = None) -> Optional[str]:
     """
     Generates candidate emails in order of statistical likelihood
     (first.last@ is the most common corporate convention by a wide margin),
@@ -659,6 +662,9 @@ def _infer_email(first: str, last: str, domain: str, smtp_check: bool = True) ->
     bounce risk for not silently losing good targets, which matters more
     at 8 emails/run than a marginal bounce-rate improvement would.
     """
+    if smtp_check is None:
+        smtp_check = SMTP_VERIFY_ENABLED   # config default; explicit arg still overrides
+
     first = re.sub(r"[^a-z]", "", first.lower())
     last  = re.sub(r"[^a-z]", "", last.lower())
     f     = first[0] if first else ""
