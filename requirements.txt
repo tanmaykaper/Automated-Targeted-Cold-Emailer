@@ -1,21 +1,21 @@
-# Search & scraping
+# Search (Serper.dev)
 requests==2.31.0
 
-# Google APIs
-gspread==6.1.2
-google-auth==2.29.0
-google-auth-oauthlib==1.2.0
-google-auth-httplib2==0.2.0
-google-api-python-client==2.126.0
-
-# Email verification
+# Email verification (MX lookup for the pattern-inference fallback tier)
 dnspython==2.6.1
 
-# Timezone
+# Timezone-aware dispatch windows
 pytz==2024.1
 
-# Excel output
+# state/pipeline.xlsx export
 openpyxl==3.1.2
 
-# Environment
+# .env loading for local runs
 python-dotenv==1.0.1
+
+# ── Optional: only needed if ENABLE_LINKEDIN_AUTOMATION=true ──
+# Unofficial/reverse-engineered LinkedIn client. Off by default — see
+# module_a_sourcing.py header and README "LinkedIn sourcing" section
+# before enabling. Uncomment only for a burner account you're prepared
+# to lose; do not point this at your primary LinkedIn login.
+# linkedin-api==2.3.1
