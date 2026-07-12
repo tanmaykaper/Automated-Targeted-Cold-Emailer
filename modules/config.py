@@ -49,7 +49,7 @@ assert OUTREACH_MODE in ("internship", "job"), \
 # ══════════════════════════════════════════════════════════════════════════
 
 # ── SOURCE (Module A) ──
-WEEKLY_TARGET   = int(os.getenv("WEEKLY_TARGET",   "30"))  # leads sourced+scored per week
+WEEKLY_TARGET   = int(os.getenv("WEEKLY_TARGET",   "35"))  # leads sourced+scored per week
 SCORE_THRESHOLD = int(os.getenv("SCORE_THRESHOLD", "55"))  # lower = wider net (was 65)
 
 # ── DRAFT (Module C) ──
