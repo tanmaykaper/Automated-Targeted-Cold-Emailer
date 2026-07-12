@@ -792,83 +792,13 @@ def _snov_find_email(first: str, last: str, domain: str) -> Optional[tuple]:
 def _apollo_find_email(first: str, last: str, domain: str,
                        company: str = "") -> Optional[tuple]:
     """
-    Apollo free-tier email lookup via /v1/mixed_people/search.
-
-    /people/match requires a paid plan and returns 401/403 on free accounts
-    even with a valid master key — that's the auth error you were seeing.
-
-    /mixed_people/search is available on the free plan (600 export credits/mo).
-    We search by name + domain, take the first result that matches the name,
-    and extract the email Apollo has on file. Apollo masks emails as
-    "email_from_customer" or "email" depending on whether the account has
-    export credits — we try both fields.
+    Apollo is disabled — both /people/match (paid only) and
+    /mixed_people/search (403 on free tier regardless of key type)
+    are gated behind paid plans. Keeping the function stub so the
+    waterfall call in _resolve_email_waterfall doesn't break, but
+    returning None immediately to avoid wasting time on a guaranteed 403.
+    Re-enable if you upgrade to a paid Apollo plan.
     """
-    if not APOLLO_API_KEY:
-        return None
-
-    # Search for this specific person by name + domain
-    payload = {
-        "person_titles":          [],
-        "q_person_name":          f"{first} {last}",
-        "organization_domains":   [domain],
-        "page":                   1,
-        "per_page":               5,
-    }
-    req = urllib.request.Request(
-        "https://api.apollo.io/v1/mixed_people/search",
-        data=json.dumps(payload).encode(),
-        headers={
-            "Content-Type":  "application/json",
-            "Cache-Control": "no-cache",
-            "X-Api-Key":     APOLLO_API_KEY,
-        },
-        method="POST",
-    )
-    try:
-        with urllib.request.urlopen(req, timeout=12) as resp:
-            data = json.loads(resp.read())
-
-        people = data.get("people", [])
-        first_l, last_l = first.lower(), last.lower()
-
-        for person in people:
-            fn = (person.get("first_name") or "").lower()
-            ln = (person.get("last_name")  or "").lower()
-
-            # Only accept if names actually match — search results can be fuzzy
-            if not (fn and ln and first_l.startswith(fn[:3]) and last_l.startswith(ln[:3])):
-                continue
-
-            # Apollo exposes email in different fields depending on plan/credits
-            email = (
-                person.get("email") or
-                person.get("email_from_customer") or
-                ""
-            )
-
-            # Apollo sometimes returns a sanitized placeholder like
-            # "e***@domain.com" — detect and skip those
-            if email and "***" not in email and _email_structurally_valid(email):
-                estatus = person.get("email_status", "")
-                conf = 85 if estatus == "verified" else 62
-                log.info("Apollo found: %s (status=%s)", email, estatus)
-                return (email, conf)
-
-        log.debug("Apollo search: no email found for %s %s @ %s", first, last, domain)
-
-    except urllib.error.HTTPError as e:
-        if e.code in (401, 403):
-            log.warning(
-                "Apollo auth error (HTTP %d) — key may lack search permissions. "
-                "Check apollo.io → Settings → Integrations → API Keys and ensure "
-                "People API + Organizations API are selected.", e.code
-            )
-        elif e.code == 429:
-            log.warning("Apollo rate limit hit — will retry next run")
-        else:
-            log.debug("Apollo search error %d", e.code)
-    except Exception as e:
-        log.debug("Apollo exception: %s", e)
     return None
 
 
@@ -935,66 +865,72 @@ def _resolve_email_waterfall(
     """
     Runs through all resolution tiers in priority order.
     Returns (email, verified: bool, source: str).
-    Caller should set lead.email_verified = verified and lead.email_source = source.
-    If verified=False, the lead should go to a manual-review queue
-    rather than auto-dispatch (Module D gates on email_verified).
-
-    Confidence threshold for "verified": ≥ 70 from any lookup API.
-    Between 50-69: accepted but flagged "low_confidence" → still goes to sheet
-    for human approval but with a warning column.
-    Below 50 (pattern only): email_verified=False → dispatch blocked until
-    human manually marks it verified in the sheet.
     """
     if not first or not last or not domain:
         return ("", False, "none")
 
-    VERIFIED_THRESHOLD    = 70
-    LOW_CONF_THRESHOLD    = 50
+    VERIFIED_THRESHOLD = 70
+    LOW_CONF_THRESHOLD = 50
 
-    # Tier 1a: Hunter email-finder (person-level, best accuracy)
-    result = _hunter_find_email(first, last, domain)
-    if result:
-        email, conf = result
-        verified = conf >= VERIFIED_THRESHOLD
-        return (email, verified, f"hunter (confidence={conf})")
+    log.info("Waterfall: resolving %s %s @ %s", first, last, domain)
 
-    # Tier 1b: Hunter domain-search (broader sweep of the same database)
-    result = _hunter_domain_search(domain, first, last)
-    if result:
-        email, conf = result
-        verified = conf >= VERIFIED_THRESHOLD
-        return (email, verified, f"hunter-domain (confidence={conf})")
-
-    # Tier 2: Prospeo (strong India + .in coverage)
-    result = _prospeo_find_email(first, last, domain, linkedin_url)
-    if result:
-        email, conf = result
-        if conf >= LOW_CONF_THRESHOLD:
+    # Tier 1a: Hunter email-finder
+    if HUNTER_API_KEY:
+        result = _hunter_find_email(first, last, domain)
+        if result:
+            email, conf = result
             verified = conf >= VERIFIED_THRESHOLD
-            return (email, verified, f"prospeo (confidence={conf})")
+            return (email, verified, f"hunter (confidence={conf})")
+        log.info("  Tier 1a Hunter: no result")
+    else:
+        log.info("  Tier 1a Hunter: SKIPPED (no HUNTER_API_KEY)")
 
-    # Tier 3: AnyMailFinder (independent database, good .in coverage)
-    result = _anymailfinder_find_email(first, last, domain)
-    if result:
-        email, conf = result
-        verified = conf >= VERIFIED_THRESHOLD
-        return (email, verified, f"anymailfinder (confidence={conf})")
+    # Tier 1b: Hunter domain-search
+    if HUNTER_API_KEY:
+        result = _hunter_domain_search(domain, first, last)
+        if result:
+            email, conf = result
+            verified = conf >= VERIFIED_THRESHOLD
+            return (email, verified, f"hunter-domain (confidence={conf})")
+        log.info("  Tier 1b Hunter domain: no result")
+
+    # Tier 2: Prospeo
+    if PROSPEO_API_KEY:
+        result = _prospeo_find_email(first, last, domain, linkedin_url)
+        if result:
+            email, conf = result
+            if conf >= LOW_CONF_THRESHOLD:
+                verified = conf >= VERIFIED_THRESHOLD
+                return (email, verified, f"prospeo (confidence={conf})")
+        log.info("  Tier 2 Prospeo: no result")
+    else:
+        log.info("  Tier 2 Prospeo: SKIPPED (no PROSPEO_API_KEY)")
+
+    # Tier 3: AnyMailFinder
+    if ANYMAILFINDER_KEY:
+        result = _anymailfinder_find_email(first, last, domain)
+        if result:
+            email, conf = result
+            verified = conf >= VERIFIED_THRESHOLD
+            return (email, verified, f"anymailfinder (confidence={conf})")
+        log.info("  Tier 3 AnyMailFinder: no result")
+    else:
+        log.info("  Tier 3 AnyMailFinder: SKIPPED (no ANYMAILFINDER_KEY)")
 
     # Tier 4: Snov.io
-    result = _snov_find_email(first, last, domain)
-    if result:
-        email, conf = result
-        verified = conf >= VERIFIED_THRESHOLD
-        return (email, verified, f"snov (confidence={conf})")
+    if SNOV_CLIENT_ID and SNOV_CLIENT_SECRET:
+        result = _snov_find_email(first, last, domain)
+        if result:
+            email, conf = result
+            verified = conf >= VERIFIED_THRESHOLD
+            return (email, verified, f"snov (confidence={conf})")
+        log.info("  Tier 4 Snov: no result")
+    else:
+        log.info("  Tier 4 Snov: SKIPPED (no SNOV_CLIENT_ID / SNOV_CLIENT_SECRET)")
 
-    # Tier 5: Apollo person-match
-    result = _apollo_find_email(first, last, domain, company)
-    if result:
-        email, conf = result
-        verified = conf >= VERIFIED_THRESHOLD
-        return (email, verified, f"apollo (confidence={conf})")
+    # Tier 5: Apollo — disabled (free tier returns 403 on all search endpoints)
 
-    # Tier 6: Pattern inference (last resort — blocks auto-send)
+    # Tier 6: Pattern inference (last resort)
     domain_ok = _domain_has_mx(domain)
     if domain_ok:
         email = _infer_email_pattern(first, last, domain)
