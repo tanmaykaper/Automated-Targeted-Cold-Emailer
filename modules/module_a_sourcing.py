@@ -792,52 +792,81 @@ def _snov_find_email(first: str, last: str, domain: str) -> Optional[tuple]:
 def _apollo_find_email(first: str, last: str, domain: str,
                        company: str = "") -> Optional[tuple]:
     """
-    Apollo /people/match — given name + domain or company, returns the
-    person record including email if Apollo has it in their database.
-    This is fundamentally different from Apollo's search (which we use in
-    Module A for sourcing) — this is a point-lookup against an existing
-    person profile, not a search query.
-    Free tier: 600 email credits/month on basic plan.
-    docs.apollo.io/reference/people-match
+    Apollo free-tier email lookup via /v1/mixed_people/search.
+
+    /people/match requires a paid plan and returns 401/403 on free accounts
+    even with a valid master key — that's the auth error you were seeing.
+
+    /mixed_people/search is available on the free plan (600 export credits/mo).
+    We search by name + domain, take the first result that matches the name,
+    and extract the email Apollo has on file. Apollo masks emails as
+    "email_from_customer" or "email" depending on whether the account has
+    export credits — we try both fields.
     """
     if not APOLLO_API_KEY:
         return None
+
+    # Search for this specific person by name + domain
     payload = {
-        "first_name":          first,
-        "last_name":           last,
-        "organization_domain": domain,
-        "reveal_personal_emails": False,
+        "person_titles":          [],
+        "q_person_name":          f"{first} {last}",
+        "organization_domains":   [domain],
+        "page":                   1,
+        "per_page":               5,
     }
-    if company:
-        payload["organization_name"] = company
     req = urllib.request.Request(
-        "https://api.apollo.io/v1/people/match",
+        "https://api.apollo.io/v1/mixed_people/search",
         data=json.dumps(payload).encode(),
         headers={
-            "Content-Type": "application/json",
+            "Content-Type":  "application/json",
             "Cache-Control": "no-cache",
-            "X-Api-Key":    APOLLO_API_KEY,
+            "X-Api-Key":     APOLLO_API_KEY,
         },
         method="POST",
     )
     try:
         with urllib.request.urlopen(req, timeout=12) as resp:
             data = json.loads(resp.read())
-        person = data.get("person", {})
-        email  = person.get("email", "")
-        # Apollo returns "email_status": "verified" | "unverified" | "likely_to_engage"
-        estatus = person.get("email_status", "")
-        if email and _email_structurally_valid(email):
-            conf = 85 if estatus == "verified" else 60
-            log.info("Apollo found: %s (status=%s)", email, estatus)
-            return (email, conf)
+
+        people = data.get("people", [])
+        first_l, last_l = first.lower(), last.lower()
+
+        for person in people:
+            fn = (person.get("first_name") or "").lower()
+            ln = (person.get("last_name")  or "").lower()
+
+            # Only accept if names actually match — search results can be fuzzy
+            if not (fn and ln and first_l.startswith(fn[:3]) and last_l.startswith(ln[:3])):
+                continue
+
+            # Apollo exposes email in different fields depending on plan/credits
+            email = (
+                person.get("email") or
+                person.get("email_from_customer") or
+                ""
+            )
+
+            # Apollo sometimes returns a sanitized placeholder like
+            # "e***@domain.com" — detect and skip those
+            if email and "***" not in email and _email_structurally_valid(email):
+                estatus = person.get("email_status", "")
+                conf = 85 if estatus == "verified" else 62
+                log.info("Apollo found: %s (status=%s)", email, estatus)
+                return (email, conf)
+
+        log.debug("Apollo search: no email found for %s %s @ %s", first, last, domain)
+
     except urllib.error.HTTPError as e:
         if e.code in (401, 403):
-            log.warning("Apollo auth error — check APOLLO_API_KEY")
+            log.warning(
+                "Apollo auth error (HTTP %d) — key may lack search permissions. "
+                "Check apollo.io → Settings → Integrations → API Keys and ensure "
+                "People API + Organizations API are selected.", e.code
+            )
         elif e.code == 429:
-            log.warning("Apollo rate limit hit")
+            log.warning("Apollo rate limit hit — will retry next run")
         else:
-            log.debug("Apollo match error %d", e.code)
+            log.debug("Apollo search error %d", e.code)
     except Exception as e:
         log.debug("Apollo exception: %s", e)
     return None
