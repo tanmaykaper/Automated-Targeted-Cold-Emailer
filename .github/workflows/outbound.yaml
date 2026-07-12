@@ -123,6 +123,12 @@ jobs:
           OUTREACH_MODE:     ${{ secrets.OUTREACH_MODE || 'internship' }}
           WEEKLY_TARGET:     ${{ secrets.WEEKLY_TARGET || '35' }}
           SCORE_THRESHOLD:   ${{ secrets.SCORE_THRESHOLD || '55' }}
+          HUNTER_API_KEY:    ${{ secrets.HUNTER_API_KEY }}
+          PROSPEO_API_KEY:   ${{ secrets.PROSPEO_API_KEY }}
+          ANYMAILFINDER_KEY: ${{ secrets.ANYMAILFINDER_KEY }}
+          SNOV_CLIENT_ID:    ${{ secrets.SNOV_CLIENT_ID }}
+          SNOV_CLIENT_SECRET: ${{ secrets.SNOV_CLIENT_SECRET }}
+          APOLLO_API_KEY:    ${{ secrets.APOLLO_API_KEY }}
           ACTION:            source
         run: python orchestrator.py
 
