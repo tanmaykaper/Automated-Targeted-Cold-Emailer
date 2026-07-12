@@ -66,6 +66,16 @@ SERPER_API_KEY    = os.getenv("SERPER_API_KEY", "")
 LINKEDIN_USERNAME = os.getenv("LINKEDIN_USERNAME", "")
 LINKEDIN_PASSWORD = os.getenv("LINKEDIN_PASSWORD", "")
 
+# Unofficial, credential-based LinkedIn scraping (linkedin-api / Voyager) is
+# off by default. It runs against LinkedIn's private app API using a real
+# login session, which LinkedIn's User Agreement prohibits regardless of
+# account tier — Premium/Sales Navigator does not change this. Enrichment
+# quietly falls back to _parse_snippet() (public Serper snippet text only)
+# unless this is explicitly flipped on for a burner account you're fully
+# prepared to lose. See module_a_manual_intake.py for the supported way to
+# bring LinkedIn-sourced leads into the pipeline without automating the site.
+ENABLE_LINKEDIN_AUTOMATION = os.getenv("ENABLE_LINKEDIN_AUTOMATION", "false").lower() == "true"
+
 # Email resolution API keys — each is a free-tier service.
 # The waterfall tries them in order; first verified hit wins.
 # See _resolve_email_waterfall() for the full priority logic.
@@ -402,7 +412,10 @@ _li_client_failed = False  # The new kill switch
 
 def _get_li_client():
     global _li_client, _li_client_failed
-    
+
+    if not ENABLE_LINKEDIN_AUTOMATION:
+        return None
+
     # If we already got blocked this run, don't even try again. 
     # Just fail instantly so the bot can move on.
     if _li_client_failed:
@@ -1289,6 +1302,108 @@ def _build_reason(lead: Lead) -> str:
 # MAIN PIPELINE
 # ══════════════════════════════════════════════════════════════════════════
 
+def enrich_and_score_candidate(
+    profile: dict, geo_id: str, vertical_id: str, source_tag: str,
+    seen_hist: set, seen_run: set, week_num: int = None,
+) -> Optional["Lead"]:
+    """Shared enrichment/scoring path for a raw profile dict — domain
+    resolution, the email waterfall, remote/company classification, and
+    confidence scoring — regardless of where the profile came from
+    (Serper /people, Serper snippet parsing, or a manually-sourced row
+    pasted in from LinkedIn by a human). Keeping this in one place means a
+    fix to email inference, title filtering, or scoring logic applies
+    identically everywhere instead of silently diverging across sourcing
+    paths. `seen_hist`/`seen_run` are mutated in place for de-duplication.
+
+    `profile` needs at minimum: name, title. Optional: company, location,
+    summary, linkedin_url.
+    """
+    week_num = week_num or datetime.now(timezone.utc).isocalendar()[1]
+
+    if not profile or not profile.get("name"):
+        return None
+
+    name  = profile["name"].strip()
+    title = (profile.get("title") or "").strip()
+    if not name or not title:
+        return None
+
+    tier = _title_tier(title)
+    if tier is None:
+        return None   # rejected title
+
+    company  = (profile.get("company") or "").strip()
+    location = (profile.get("location") or "").strip()
+    summary  = (profile.get("summary") or "")
+    url      = (profile.get("linkedin_url") or "")
+
+    key = f"{name.lower()}|{company.lower()}"
+    if key in seen_run:
+        return None
+    seen_run.add(key)
+
+    company_type, funding_stage = _classify_company(company, summary)
+    is_remote = _is_remote(summary, title, location)
+
+    # Company description (1 Serper call, quota-conscious)
+    company_desc = ""
+    if company and _serper_calls < 60:
+        company_desc = _get_company_desc(company)
+        time.sleep(0.6)
+
+    # Domain resolution
+    domain = None
+    if company and _serper_calls < 65:
+        domain = _get_company_domain(company)
+        time.sleep(0.6)
+
+    # ── Email resolution waterfall ─────────────────────────────────────
+    # Old behaviour: pattern-guess → ~20-30% accuracy for Indian firms.
+    # New behaviour: 5 verified lookup APIs first, pattern as last resort.
+    email = ""
+    email_verified = False
+    email_source   = "none"
+
+    if domain:
+        parts = name.split()
+        if len(parts) >= 2:
+            first_n, last_n = parts[0], parts[-1]
+            email, email_verified, email_source = _resolve_email_waterfall(
+                first=first_n, last=last_n,
+                domain=domain, company=company,
+                linkedin_url=url,
+            )
+            if email in seen_hist or email in seen_run:
+                log.debug("Email already seen — skipping duplicate: %s", email)
+                email = ""
+
+    if not email:
+        log.debug("No email resolved for %s @ %s", name, company)
+        return None
+
+    seen_run.add(email)
+
+    lead = Lead(
+        name=name, company=company, position=title,
+        email=email, email_verified=email_verified, email_source=email_source,
+        linkedin_url=url, location=location,
+        geo_segment=geo_id, vertical=vertical_id,
+        company_type=company_type, funding_stage=funding_stage,
+        is_remote_role=is_remote, company_description=company_desc,
+        title_tier=tier, outreach_mode=OUTREACH_MODE,
+        source=source_tag,
+        week_sourced=f"{datetime.now(timezone.utc).year}-W{week_num:02d}",
+    )
+    lead.reason_for_outreach = _build_reason(lead)
+    lead.confidence_score    = _score_lead(lead)
+
+    verified_tag = "✓VERIFIED" if email_verified else "⚠ UNVERIFIED"
+    log.info("✓ [Tier%s|%d|%s] %s | %s | %s | %s [%s]",
+             tier, lead.confidence_score, verified_tag,
+             name, title, company, email, email_source)
+    return lead
+
+
 def run_sourcing_pipeline(
     weekly_target: int = None,
     override_combos: list = None,
@@ -1310,93 +1425,10 @@ def run_sourcing_pipeline(
     all_leads: list = []
 
     def _process_candidate(profile: dict, geo_id: str, vertical_id: str, source_tag: str) -> Optional[Lead]:
-        """Shared enrichment/scoring path for a raw profile dict, regardless
-        of whether it came from a scraped LinkedIn URL or a Serper /people
-        hit. Keeping this in one place means a fix to email inference,
-        title filtering, or scoring logic applies identically to both
-        sourcing paths instead of silently diverging over time."""
-        if not profile or not profile.get("name"):
-            return None
-
-        name  = profile["name"].strip()
-        title = (profile.get("title") or "").strip()
-        if not name or not title:
-            return None
-
-        tier = _title_tier(title)
-        if tier is None:
-            return None   # rejected title
-
-        company  = (profile.get("company") or "").strip()
-        location = (profile.get("location") or "").strip()
-        summary  = (profile.get("summary") or "")
-        url      = (profile.get("linkedin_url") or "")
-
-        key = f"{name.lower()}|{company.lower()}"
-        if key in seen_run:
-            return None
-        seen_run.add(key)
-
-        company_type, funding_stage = _classify_company(company, summary)
-        is_remote = _is_remote(summary, title, location)
-
-        # Company description (1 Serper call, quota-conscious)
-        company_desc = ""
-        if company and _serper_calls < 60:
-            company_desc = _get_company_desc(company)
-            time.sleep(0.6)
-
-        # Domain resolution
-        domain = None
-        if company and _serper_calls < 65:
-            domain = _get_company_domain(company)
-            time.sleep(0.6)
-
-        # ── Email resolution waterfall ─────────────────────────────────────
-        # Old behaviour: pattern-guess → ~20-30% accuracy for Indian firms.
-        # New behaviour: 5 verified lookup APIs first, pattern as last resort.
-        email = ""
-        email_verified = False
-        email_source   = "none"
-
-        if domain:
-            parts = name.split()
-            if len(parts) >= 2:
-                first_n, last_n = parts[0], parts[-1]
-                email, email_verified, email_source = _resolve_email_waterfall(
-                    first=first_n, last=last_n,
-                    domain=domain, company=company,
-                    linkedin_url=url,
-                )
-                if email in seen_hist or email in seen_run:
-                    log.debug("Email already seen — skipping duplicate: %s", email)
-                    email = ""
-
-        if not email:
-            log.debug("No email resolved for %s @ %s", name, company)
-            return None
-
-        seen_run.add(email)
-
-        lead = Lead(
-            name=name, company=company, position=title,
-            email=email, email_verified=email_verified, email_source=email_source,
-            linkedin_url=url, location=location,
-            geo_segment=geo_id, vertical=vertical_id,
-            company_type=company_type, funding_stage=funding_stage,
-            is_remote_role=is_remote, company_description=company_desc,
-            title_tier=tier, outreach_mode=OUTREACH_MODE,
-            source=source_tag,
-            week_sourced=f"{datetime.now(timezone.utc).year}-W{week_num:02d}",
+        return enrich_and_score_candidate(
+            profile, geo_id, vertical_id, source_tag,
+            seen_hist=seen_hist, seen_run=seen_run, week_num=week_num,
         )
-        lead.reason_for_outreach = _build_reason(lead)
-        lead.confidence_score    = _score_lead(lead)
-
-        verified_tag = "✓VERIFIED" if email_verified else "⚠ UNVERIFIED"
-        log.info("✓ [Tier%s|%d|%s] %s | %s | %s | %s [%s]",
-                 tier, lead.confidence_score, verified_tag,
-                 name, title, company, email, email_source)
-        return lead
 
     for geo_id, vertical_id in combos:
         if len(all_leads) >= target * 3:

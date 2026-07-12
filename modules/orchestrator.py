@@ -73,6 +73,33 @@ def run_source() -> dict:
 
 
 # ══════════════════════════════════════════════════════════════════════════
+# MANUAL INTAKE  — leads sourced by hand from LinkedIn Premium/Sales Nav,
+# enriched through the same waterfall as automated sourcing. No LinkedIn
+# automation involved — see module_a_manual_intake.py.
+# ══════════════════════════════════════════════════════════════════════════
+
+def run_manual_intake() -> dict:
+    log.info("══ ACTION: MANUAL_INTAKE ══")
+    from module_a_manual_intake import run_manual_intake_pipeline
+    from module_b_spreadsheet   import append_leads, get_stats, export_excel
+
+    leads = run_manual_intake_pipeline()
+    added = append_leads(leads)
+    stats = get_stats()
+    export_excel()
+
+    _summary(f"""## 🖐️ Manual Intake Run
+| | |
+|---|---|
+| Rows processed | **{len(leads)}** |
+| New leads added | **{added}** |
+| Total in pipeline | {stats['total']} |
+| Pending (no draft) | {stats['no_draft']} |
+""")
+    return {"added": added, "stats": stats}
+
+
+# ══════════════════════════════════════════════════════════════════════════
 # DRAFT  (fully independent — no dependency on source job)
 # ══════════════════════════════════════════════════════════════════════════
 
@@ -145,9 +172,10 @@ def run_dispatch() -> dict:
 # ══════════════════════════════════════════════════════════════════════════
 
 if __name__ == "__main__":
-    dispatch = {"source": run_source, "draft": run_draft, "dispatch": run_dispatch}
+    dispatch = {"source": run_source, "manual_intake": run_manual_intake,
+                "draft": run_draft, "dispatch": run_dispatch}
     if ACTION not in dispatch:
-        log.error("Unknown ACTION='%s' — use: source | draft | dispatch", ACTION)
+        log.error("Unknown ACTION='%s' — use: source | manual_intake | draft | dispatch", ACTION)
         sys.exit(1)
     result = dispatch[ACTION]()
     print(json.dumps(result, indent=2, default=str))
