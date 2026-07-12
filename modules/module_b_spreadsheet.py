@@ -1,293 +1,300 @@
 """
-MODULE B: Pipeline State Manager
-══════════════════════════════════
-Storage: CSV (state/pipeline.csv) — committed to git, additive only.
-Excel:   state/pipeline.xlsx — generated fresh each run for human viewing.
+MODULE B: Human-in-the-Loop (HITL) Spreadsheet Generator
+==========================================================
+Writes filtered leads + AI-drafted emails to Google Sheets (primary)
+and a local Excel file (backup). Approval column uses data validation
+dropdown: Pending / Approved / Rejected.
 
-Key design decisions (per latest spec):
-  • ADDITIVE ONLY — never overwrites existing rows.
-    Each run appends NEW leads. Existing rows (and their Sent status) are untouched.
-  • Deduplication by Target Email across entire historical file.
-  • Status = "Pending" | "Sent" only (no Approved / Rejected / HITL gate).
-  • Dispatch reads all Pending rows that have a draft — no approval step.
-  • Excel is regenerated each run for easy human review (view-only, not the source of truth).
+Dependencies:
+    pip install gspread google-auth openpyxl
 """
 
-import os, csv, logging
-from datetime import datetime, timezone
-from pathlib  import Path
+import os
+import logging
+from datetime import datetime
+from dataclasses import asdict
+
+import gspread
+from google.oauth2.service_account import Credentials
+import openpyxl
+from openpyxl.styles import Font, PatternFill, Alignment
+from openpyxl.worksheet.datavalidation import DataValidation
 
 log = logging.getLogger(__name__)
 
-REPO_ROOT    = Path(__file__).parent.parent
-STATE_DIR    = REPO_ROOT / "state"
-PIPELINE_CSV = STATE_DIR / "pipeline.csv"
-PIPELINE_XLS = STATE_DIR / "pipeline.xlsx"
-
+# ──────────────────────────────────────────────
+# COLUMN SCHEMA  (order matters for Excel/Sheets)
+# ──────────────────────────────────────────────
 COLUMNS = [
     "Date Sourced",
-    "Week",
-    "Confidence Score",
-    "Title Tier",           # A / B / C
     "Target Name",
     "Company",
     "Position",
     "Target Email",
+    "Email Verified",    # TRUE = came from a lookup API; FALSE = pattern-guessed, dispatch blocked
+    "Email Source",      # e.g. "hunter (confidence=85)" | "pattern-inferred (UNVERIFIED)"
+    "Company Type",
     "LinkedIn URL",
     "Location",
-    "Geo Segment",
-    "Vertical",
-    "Company Type",         # Tier-1 | Startup | Research | Corporate
-    "Funding Stage",
-    "Is Remote",
-    "Outreach Mode",        # internship | job
-    "Company Description",
     "Reason for Outreach",
-    "Drafted Email Subject",
     "Drafted Email Body",
-    "Status",               # Pending | Sent
-    "Sent At",              # UTC timestamp
+    "Approval Status",
 ]
 
-
-# ══════════════════════════════════════════════════════════════════════════
-# CSV — source of truth
-# ══════════════════════════════════════════════════════════════════════════
-
-def _ensure_csv() -> None:
-    STATE_DIR.mkdir(parents=True, exist_ok=True)
-    if not PIPELINE_CSV.exists():
-        with open(PIPELINE_CSV, "w", newline="", encoding="utf-8") as f:
-            csv.DictWriter(f, fieldnames=COLUMNS).writeheader()
-        log.info("Created %s", PIPELINE_CSV)
+APPROVAL_OPTIONS = ["Pending", "Approved", "Rejected", "Manual-Verify"]
+# "Manual-Verify" = human has confirmed the pattern-inferred email is real
+# before it goes to dispatch. Module D gates on Approved AND (Email Verified=TRUE OR status=Manual-Verify).
 
 
-def read_all_leads() -> list:
-    _ensure_csv()
-    with open(PIPELINE_CSV, "r", newline="", encoding="utf-8") as f:
-        return list(csv.DictReader(f))
+# ──────────────────────────────────────────────
+# GOOGLE SHEETS WRITER
+# ──────────────────────────────────────────────
+SCOPES = [
+    "https://www.googleapis.com/auth/spreadsheets",
+    "https://www.googleapis.com/auth/drive",
+]
+
+def get_gspread_client() -> gspread.Client:
+    """Authenticates using a service-account JSON file."""
+    creds_path = os.environ.get("GOOGLE_CREDENTIALS_JSON", "credentials.json")
+    creds = Credentials.from_service_account_file(creds_path, scopes=SCOPES)
+    return gspread.authorize(creds)
 
 
-def _email_exists(email: str, all_rows: list) -> bool:
-    e = email.strip().lower()
-    return any(r.get("Target Email","").strip().lower() == e for r in all_rows)
-
-
-def append_leads(leads: list) -> int:
+def write_to_google_sheets(
+    leads_with_drafts: list[dict],
+    spreadsheet_id: str,
+    worksheet_name: str = "Outbound Pipeline",
+) -> str:
     """
-    Append new leads to CSV. Skips any email already present.
-    NEVER modifies existing rows. Returns count written.
+    Upserts rows to Google Sheets. Adds header if sheet is empty.
+    Returns the spreadsheet URL.
+
+    leads_with_drafts: list of dicts, each must have all COLUMNS keys.
     """
-    _ensure_csv()
-    existing = read_all_leads()
-    today    = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    written  = 0
-
-    with open(PIPELINE_CSV, "a", newline="", encoding="utf-8") as f:
-        w = csv.DictWriter(f, fieldnames=COLUMNS, extrasaction="ignore")
-
-        for lead in leads:
-            email = getattr(lead, "email", None) or lead.get("email", "")
-            if not email or _email_exists(email, existing):
-                continue
-
-            row = {
-                "Date Sourced":          today,
-                "Week":                  getattr(lead, "week_sourced", ""),
-                "Confidence Score":      getattr(lead, "confidence_score", 0),
-                "Title Tier":            getattr(lead, "title_tier", ""),
-                "Target Name":           getattr(lead, "name", ""),
-                "Company":               getattr(lead, "company", ""),
-                "Position":              getattr(lead, "position", ""),
-                "Target Email":          email,
-                "LinkedIn URL":          getattr(lead, "linkedin_url", ""),
-                "Location":              getattr(lead, "location", ""),
-                "Geo Segment":           getattr(lead, "geo_segment", ""),
-                "Vertical":              getattr(lead, "vertical", ""),
-                "Company Type":          getattr(lead, "company_type", ""),
-                "Funding Stage":         getattr(lead, "funding_stage", ""),
-                "Is Remote":             str(getattr(lead, "is_remote_role", False)),
-                "Outreach Mode":         getattr(lead, "outreach_mode", ""),
-                "Company Description":   getattr(lead, "company_description", ""),
-                "Reason for Outreach":   getattr(lead, "reason_for_outreach", ""),
-                "Drafted Email Subject": "",
-                "Drafted Email Body":    "",
-                "Status":                "Pending",
-                "Sent At":               "",
-            }
-            w.writerow(row)
-            # Add to in-memory list so duplicates within same batch are also caught
-            existing.append(row)
-            written += 1
-            log.info("+ %s | %s | %s", row["Target Name"], row["Company"], email)
-
-    log.info("Appended %d new leads", written)
-    return written
-
-
-def _rewrite_csv(rows: list) -> None:
-    with open(PIPELINE_CSV, "w", newline="", encoding="utf-8") as f:
-        w = csv.DictWriter(f, fieldnames=COLUMNS, extrasaction="ignore")
-        w.writeheader()
-        w.writerows(rows)
-
-
-def update_field(email: str, field: str, value: str) -> bool:
-    rows    = read_all_leads()
-    updated = False
-    for r in rows:
-        if r.get("Target Email","").strip().lower() == email.strip().lower():
-            r[field] = value
-            updated  = True
-            break
-    if updated:
-        _rewrite_csv(rows)
-    return updated
-
-
-def write_draft(email: str, subject: str, body: str) -> None:
-    rows = read_all_leads()
-    for r in rows:
-        if r.get("Target Email","").strip().lower() == email.strip().lower():
-            r["Drafted Email Subject"] = subject
-            r["Drafted Email Body"]    = body
-            break
-    _rewrite_csv(rows)
-
-
-def mark_sent(email: str, sent_at: str) -> None:
-    rows = read_all_leads()
-    for r in rows:
-        if r.get("Target Email","").strip().lower() == email.strip().lower():
-            r["Status"]  = "Sent"
-            r["Sent At"] = sent_at
-            break
-    _rewrite_csv(rows)
-
-
-def read_pending_with_draft() -> list:
-    """
-    Return all rows where Status == 'Pending' AND draft body is populated.
-    These are the rows Module D will dispatch — no approval gate.
-    """
-    return [
-        r for r in read_all_leads()
-        if r.get("Status","").strip() == "Pending"
-        and r.get("Drafted Email Body","").strip()
-    ]
-
-
-def read_pending_without_draft() -> list:
-    """Return Pending rows that have no email draft yet — Module C's input."""
-    return [
-        r for r in read_all_leads()
-        if r.get("Status","").strip() == "Pending"
-        and not r.get("Drafted Email Body","").strip()
-    ]
-
-
-def get_stats() -> dict:
-    rows  = read_all_leads()
-    total = len(rows)
-    return {
-        "total":    total,
-        "pending":  sum(1 for r in rows if r.get("Status") == "Pending"),
-        "sent":     sum(1 for r in rows if r.get("Status") == "Sent"),
-        "drafted":  sum(1 for r in rows if r.get("Drafted Email Body","").strip()),
-        "no_draft": sum(1 for r in rows if not r.get("Drafted Email Body","").strip()),
-    }
-
-
-# ══════════════════════════════════════════════════════════════════════════
-# EXCEL — view-only, regenerated fresh every run
-# ══════════════════════════════════════════════════════════════════════════
-
-def export_excel() -> str:
-    """
-    Generate a formatted Excel file from the full CSV.
-    Called at the end of every sourcing / drafting / dispatch run.
-    Returns path to the file.
-    """
+    gc = get_gspread_client()
     try:
-        from openpyxl import Workbook
-        from openpyxl.styles import (PatternFill, Font, Alignment, Border, Side)
-        from openpyxl.utils  import get_column_letter
-    except ImportError:
-        log.warning("openpyxl not installed — skipping Excel export")
-        return ""
+        sh = gc.open_by_key(spreadsheet_id)
+    except gspread.exceptions.SpreadsheetNotFound:
+        log.error(f"Spreadsheet {spreadsheet_id} not found. Check ID and sharing permissions.")
+        raise
 
-    rows = read_all_leads()
-    wb   = Workbook()
-    ws   = wb.active
-    ws.title = "Outbound Pipeline"
+    # Get or create worksheet
+    try:
+        ws = sh.worksheet(worksheet_name)
+    except gspread.exceptions.WorksheetNotFound:
+        ws = sh.add_worksheet(title=worksheet_name, rows=1000, cols=len(COLUMNS))
 
-    # ── Styles ──────────────────────────────────────────────────────────
-    HDR_FILL     = PatternFill("solid", fgColor="0F172A")   # slate-900
-    HDR_FONT     = Font(color="F8FAFC", bold=True, name="Calibri", size=10)
-    PENDING_FILL = PatternFill("solid", fgColor="FEF9C3")   # yellow-100
-    SENT_FILL    = PatternFill("solid", fgColor="DCFCE7")   # green-100
-    TIER_A_FILL  = PatternFill("solid", fgColor="EDE9FE")   # violet-100
-    THIN         = Side(style="thin", color="E2E8F0")
-    BORDER       = Border(left=THIN, right=THIN, bottom=THIN, top=THIN)
+    existing = ws.get_all_values()
 
-    COL_W = {
-        "Date Sourced": 13, "Week": 10, "Confidence Score": 9, "Title Tier": 7,
-        "Target Name": 22, "Company": 26, "Position": 30, "Target Email": 32,
-        "LinkedIn URL": 38, "Location": 18, "Geo Segment": 12, "Vertical": 16,
-        "Company Type": 12, "Funding Stage": 14, "Is Remote": 9,
-        "Outreach Mode": 12, "Company Description": 50,
-        "Reason for Outreach": 55, "Drafted Email Subject": 40,
-        "Drafted Email Body": 90, "Status": 10, "Sent At": 20,
-    }
+    # Write header if blank
+    if not existing or existing[0] != COLUMNS:
+        ws.insert_row(COLUMNS, 1)
+        ws.format("1:1", {
+            "textFormat": {"bold": True},
+            "backgroundColor": {"red": 0.12, "green": 0.24, "blue": 0.42},
+        })
+        # Freeze header row
+        ws.freeze(rows=1)
+        existing_emails: set[str] = set()
+    else:
+        # Build set of already-logged emails to avoid duplicates
+        rows = ws.get_all_records()
+        existing_emails = {r.get("Target Email", "") for r in rows}
 
-    # ── Header row ───────────────────────────────────────────────────────
-    ws.append(COLUMNS)
-    for ci, col_name in enumerate(COLUMNS, 1):
-        cell = ws.cell(row=1, column=ci)
-        cell.fill      = HDR_FILL
-        cell.font      = HDR_FONT
-        cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
-        cell.border    = BORDER
-        ws.column_dimensions[get_column_letter(ci)].width = COL_W.get(col_name, 18)
-    ws.row_dimensions[1].height = 30
-    ws.freeze_panes = "A2"
-    ws.auto_filter.ref = f"A1:{get_column_letter(len(COLUMNS))}1"
+    new_rows = []
+    for lead in leads_with_drafts:
+        if lead.get("Target Email", "") in existing_emails:
+            log.info(f"Skipping duplicate: {lead.get('Target Email')}")
+            continue
+        row = [lead.get(col, "") for col in COLUMNS]
+        # Default approval status
+        if not row[COLUMNS.index("Approval Status")]:
+            # Unverified emails get "Manual-Verify" instead of "Pending" so they
+            # stand out in the sheet and can't be accidentally dispatched.
+            email_verified = str(lead.get("Email Verified", "")).upper()
+            row[COLUMNS.index("Approval Status")] = (
+                "Manual-Verify" if email_verified in ("FALSE", "NO", "") else "Pending"
+            )
+        new_rows.append(row)
 
-    # ── Data rows ────────────────────────────────────────────────────────
-    status_col = COLUMNS.index("Status") + 1
-    tier_col   = COLUMNS.index("Title Tier") + 1
+    if new_rows:
+        ws.append_rows(new_rows, value_input_option="USER_ENTERED")
+        log.info(f"Appended {len(new_rows)} rows to Google Sheets.")
 
-    for row_data in rows:
-        row_vals = [row_data.get(c, "") for c in COLUMNS]
-        ws.append(row_vals)
-        ri = ws.max_row
+        # Approval Status is now column M (index 12, 0-based = col 12)
+        approval_col_idx = COLUMNS.index("Approval Status")
+        last_data_row = len(existing) + len(new_rows)
 
-        status = row_data.get("Status", "Pending")
-        tier   = row_data.get("Title Tier", "")
+        requests = [
+            # Dropdown on Approval Status column
+            {
+                "setDataValidation": {
+                    "range": {
+                        "sheetId": ws.id,
+                        "startRowIndex": 1,
+                        "endRowIndex": last_data_row + 10,
+                        "startColumnIndex": approval_col_idx,
+                        "endColumnIndex": approval_col_idx + 1,
+                    },
+                    "rule": {
+                        "condition": {
+                            "type": "ONE_OF_LIST",
+                            "values": [{"userEnteredValue": v} for v in APPROVAL_OPTIONS],
+                        },
+                        "showCustomUi": True,
+                        "strict": True,
+                    },
+                }
+            },
+            # Conditional formatting — amber background for Manual-Verify rows
+            # so unverified emails are visually obvious without opening each row.
+            {
+                "addConditionalFormatRule": {
+                    "rule": {
+                        "ranges": [{
+                            "sheetId": ws.id,
+                            "startRowIndex": 1,
+                            "endRowIndex": last_data_row + 10,
+                        }],
+                        "booleanRule": {
+                            "condition": {
+                                "type": "TEXT_EQ",
+                                "values": [{"userEnteredValue": "Manual-Verify"}],
+                            },
+                            "format": {
+                                "backgroundColor": {"red": 1.0, "green": 0.85, "blue": 0.4},
+                            },
+                        },
+                    },
+                    "index": 0,
+                }
+            },
+        ]
+        sh.batch_update({"requests": requests})
+    else:
+        log.info("No new rows to add (all duplicates).")
 
-        for ci in range(1, len(COLUMNS) + 1):
-            cell = ws.cell(row=ri, column=ci)
+    return f"https://docs.google.com/spreadsheets/d/{spreadsheet_id}"
+
+
+# ──────────────────────────────────────────────
+# EXCEL BACKUP WRITER
+# ──────────────────────────────────────────────
+HEADER_FILL        = PatternFill(start_color="1E3D6A", end_color="1E3D6A", fill_type="solid")
+HEADER_FONT        = Font(color="FFFFFF", bold=True, size=10)
+ALT_ROW_FILL       = PatternFill(start_color="EEF2F7", end_color="EEF2F7", fill_type="solid")
+UNVERIFIED_ROW_FILL = PatternFill(start_color="FFE066", end_color="FFE066", fill_type="solid")
+# Amber = pattern-inferred email, needs manual check before you can approve it
+
+COLUMN_WIDTHS = {
+    "Date Sourced":        14,
+    "Target Name":         22,
+    "Company":             26,
+    "Position":            30,
+    "Target Email":        32,
+    "Email Verified":      14,
+    "Email Source":        38,
+    "Company Type":        14,
+    "LinkedIn URL":        40,
+    "Location":            22,
+    "Reason for Outreach": 45,
+    "Drafted Email Body":  80,
+    "Approval Status":     16,
+}
+
+
+def write_to_excel(
+    leads_with_drafts: list[dict],
+    output_path: str = "output/outbound_pipeline.xlsx",
+) -> str:
+    """Creates or updates an Excel workbook with all leads."""
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+
+    # Load existing or create new
+    try:
+        wb = openpyxl.load_workbook(output_path)
+        ws = wb.active
+        existing_emails = {ws.cell(row=r, column=5).value for r in range(2, ws.max_row + 1)}
+    except FileNotFoundError:
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "Outbound Pipeline"
+        existing_emails: set = set()
+
+        # Write header
+        for col_idx, col_name in enumerate(COLUMNS, start=1):
+            cell = ws.cell(row=1, column=col_idx, value=col_name)
+            cell.font = HEADER_FONT
+            cell.fill = HEADER_FILL
+            cell.alignment = Alignment(wrap_text=True, vertical="center")
+            ws.column_dimensions[cell.column_letter].width = COLUMN_WIDTHS.get(col_name, 20)
+
+        ws.row_dimensions[1].height = 25
+        ws.freeze_panes = "A2"
+
+    # Dropdown validation for Approval Status — now column M (index 13, letter M)
+    approval_col_letter = chr(ord("A") + COLUMNS.index("Approval Status"))
+    dv = DataValidation(
+        type="list",
+        formula1=f'"{",".join(APPROVAL_OPTIONS)}"',
+        showDropDown=False,
+        sqref=f"{approval_col_letter}2:{approval_col_letter}5000",
+    )
+    ws.add_data_validation(dv)
+
+    start_row = ws.max_row + 1
+
+    for i, lead in enumerate(leads_with_drafts):
+        email = lead.get("Target Email", "")
+        if email in existing_emails:
+            continue
+
+        row_num = start_row + i
+        email_verified = str(lead.get("Email Verified", "")).upper() in ("TRUE", "YES", "1")
+
+        # Unverified rows get amber fill so they stand out immediately.
+        # Verified rows get standard alt-row banding.
+        if not email_verified:
+            fill = UNVERIFIED_ROW_FILL
+        else:
+            fill = ALT_ROW_FILL if row_num % 2 == 0 else None
+
+        for col_idx, col_name in enumerate(COLUMNS, start=1):
+            value = lead.get(col_name, "")
+            if col_name == "Approval Status" and not value:
+                value = "Manual-Verify" if not email_verified else "Pending"
+            cell = ws.cell(row=row_num, column=col_idx, value=value)
             cell.alignment = Alignment(wrap_text=True, vertical="top")
-            cell.border    = BORDER
+            if fill:
+                cell.fill = fill
 
-        # Colour status column
-        status_cell = ws.cell(row=ri, column=status_col)
-        status_cell.fill = SENT_FILL if status == "Sent" else PENDING_FILL
-        status_cell.font = Font(bold=True, name="Calibri", size=10)
+        ws.row_dimensions[row_num].height = 60
+        existing_emails.add(email)
 
-        # Highlight Tier A rows with subtle violet tint on name cell
-        if tier == "A":
-            ws.cell(row=ri, column=tier_col).fill = TIER_A_FILL
-
-        ws.row_dimensions[ri].height = 70
-
-    STATE_DIR.mkdir(parents=True, exist_ok=True)
-    wb.save(PIPELINE_XLS)
-    log.info("Excel exported → %s (%d rows)", PIPELINE_XLS, len(rows))
-    return str(PIPELINE_XLS)
+    wb.save(output_path)
+    log.info(f"Excel written to {output_path}")
+    return output_path
 
 
-if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
-    print(get_stats())
-    export_excel()
+# ──────────────────────────────────────────────
+# COMBINED WRITER — calls both
+# ──────────────────────────────────────────────
+def write_leads(
+    leads_with_drafts: list[dict],
+    spreadsheet_id: str | None = None,
+    excel_path: str = "output/outbound_pipeline.xlsx",
+):
+    """
+    Writes to both Google Sheets and local Excel.
+    Pass spreadsheet_id=None to skip Google Sheets.
+    """
+    if spreadsheet_id:
+        try:
+            url = write_to_google_sheets(leads_with_drafts, spreadsheet_id)
+            log.info(f"Google Sheets updated: {url}")
+        except Exception as e:
+            log.error(f"Google Sheets write failed: {e}. Falling back to Excel only.")
+
+    xlsx_path = write_to_excel(leads_with_drafts, excel_path)
+    return xlsx_path

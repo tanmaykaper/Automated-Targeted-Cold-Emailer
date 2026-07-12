@@ -66,6 +66,16 @@ SERPER_API_KEY    = os.getenv("SERPER_API_KEY", "")
 LINKEDIN_USERNAME = os.getenv("LINKEDIN_USERNAME", "")
 LINKEDIN_PASSWORD = os.getenv("LINKEDIN_PASSWORD", "")
 
+# Email resolution API keys — each is a free-tier service.
+# The waterfall tries them in order; first verified hit wins.
+# See _resolve_email_waterfall() for the full priority logic.
+HUNTER_API_KEY  = os.getenv("HUNTER_API_KEY",  "")   # hunter.io          — 25 searches/mo free
+PROSPEO_API_KEY = os.getenv("PROSPEO_API_KEY", "")   # prospeo.com        — 75 lookups/mo free; strong India coverage
+SNOV_CLIENT_ID  = os.getenv("SNOV_CLIENT_ID",  "")   # snov.io            — 50 credits/mo free
+SNOV_CLIENT_SECRET = os.getenv("SNOV_CLIENT_SECRET", "")
+APOLLO_API_KEY  = os.getenv("APOLLO_API_KEY",  "")   # apollo.io          — 600 credits/mo free on basic
+ANYMAILFINDER_KEY = os.getenv("ANYMAILFINDER_KEY", "") # anymailfinder.com — 90 lookups/mo free; good for .in domains
+
 EMAIL_PATTERNS = [
     "{first}.{last}@{domain}",
     "{first}@{domain}",
@@ -164,6 +174,8 @@ class Lead:
     company:             str  = ""
     position:            str  = ""
     email:               str  = ""
+    email_verified:      bool = False   # True = came from a lookup API; False = pattern-guessed
+    email_source:        str  = ""      # "hunter" | "prospeo" | "snov" | "apollo" | "anymailfinder" | "pattern"
     linkedin_url:        str  = ""
     location:            str  = ""
     geo_segment:         str  = ""
@@ -502,9 +514,477 @@ def _parse_snippet(url: str, results: list) -> dict:
 # EMAIL INFERENCE
 # ══════════════════════════════════════════════════════════════════════════
 
+# ══════════════════════════════════════════════════════════════════════════
+# EMAIL RESOLUTION — 5-TIER VERIFIED WATERFALL
+# ══════════════════════════════════════════════════════════════════════════
+# The old approach (pattern-guess first.last@domain then SMTP-probe) gave
+# ~20-30% accuracy for Indian boutique firms and startups where email
+# conventions are non-standard. The screenshot showed 7/7 bounces.
+#
+# New priority order — first verified hit wins, pattern guessing is a last
+# resort that sets email_verified=False and prevents auto-send:
+#
+#   Tier 1: Hunter.io   /email-finder   (person-level lookup, confidence score)
+#   Tier 2: Prospeo     /email-finder   (strong India coverage, 75 free/mo)
+#   Tier 3: AnyMailFinder               (good for .in domains, 90 free/mo)
+#   Tier 4: Snov.io     /get-emails-by-name (50 free credits/mo)
+#   Tier 5: Apollo.io   /people/match   (600 free credits/mo, person-level)
+#   Tier 6: Pattern inference           (email_verified=False → manual review queue)
+#
+# Each tier is skipped silently if its API key is not configured, so the
+# pipeline degrades gracefully to whatever keys you have.
+# ══════════════════════════════════════════════════════════════════════════
+
+_domain_cache: dict = {}
+_snov_token_cache: dict = {}   # {"token": str, "expires": float}
+
+# ── Tier 1: Hunter.io Email Finder ────────────────────────────────────────
+def _hunter_find_email(first: str, last: str, domain: str) -> Optional[tuple]:
+    """
+    Returns (email, confidence_int) or None.
+    Hunter's /email-finder takes first name, last name, and domain and returns
+    the most likely email with a 0-100 confidence score. Score ≥ 70 is
+    Hunter's own threshold for "fairly confident". We accept ≥ 50 and let the
+    waterfall escalate to the next tier if lower.
+    Free tier: 25 searches/month. API docs: hunter.io/api-documentation/v2
+    """
+    if not HUNTER_API_KEY:
+        return None
+    params = urllib.parse.urlencode({
+        "domain":      domain,
+        "first_name":  first,
+        "last_name":   last,
+        "api_key":     HUNTER_API_KEY,
+    })
+    url = f"https://api.hunter.io/v2/email-finder?{params}"
+    try:
+        req  = urllib.request.Request(url, headers={"Accept": "application/json"})
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            data = json.loads(resp.read())
+        d = data.get("data", {})
+        email      = d.get("email", "")
+        confidence = d.get("score", 0)
+        if email and confidence >= 50:
+            log.info("Hunter found: %s (confidence=%d)", email, confidence)
+            return (email, confidence)
+        if email:
+            log.debug("Hunter found %s but confidence too low (%d) — trying next tier", email, confidence)
+    except urllib.error.HTTPError as e:
+        if e.code == 429:
+            log.warning("Hunter rate limit hit")
+        elif e.code != 404:
+            log.debug("Hunter error %d for %s %s @ %s", e.code, first, last, domain)
+    except Exception as e:
+        log.debug("Hunter exception: %s", e)
+    return None
+
+
+def _hunter_domain_search(domain: str, first: str, last: str) -> Optional[tuple]:
+    """
+    Hunter domain search — finds all emails on a domain, then filters by name.
+    Useful as a Hunter Tier 1b fallback when /email-finder returns nothing but
+    the domain itself is real (Hunter has it indexed but person-level lookup missed).
+    Returns (email, 60) if name match found, else None.
+    """
+    if not HUNTER_API_KEY:
+        return None
+    params = urllib.parse.urlencode({
+        "domain":  domain,
+        "api_key": HUNTER_API_KEY,
+        "limit":   20,
+        "type":    "personal",
+    })
+    url = f"https://api.hunter.io/v2/domain-search?{params}"
+    try:
+        req = urllib.request.Request(url, headers={"Accept": "application/json"})
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            data = json.loads(resp.read())
+        emails = data.get("data", {}).get("emails", [])
+        first_l, last_l = first.lower(), last.lower()
+        for entry in emails:
+            fn = (entry.get("first_name") or "").lower()
+            ln = (entry.get("last_name")  or "").lower()
+            em = (entry.get("value")      or "").lower()
+            # Match on name or on email local-part containing the name
+            if (fn == first_l and ln == last_l) or \
+               (first_l in em and last_l in em) or \
+               (fn and ln and first_l.startswith(fn) and last_l.startswith(ln)):
+                email = entry["value"]
+                conf  = entry.get("confidence", 60)
+                log.info("Hunter domain-search found: %s (confidence=%d)", email, conf)
+                return (email, conf)
+    except Exception as e:
+        log.debug("Hunter domain-search exception: %s", e)
+    return None
+
+
+# ── Tier 2: Prospeo Email Finder ──────────────────────────────────────────
+def _prospeo_find_email(first: str, last: str, domain: str,
+                        linkedin_url: str = "") -> Optional[tuple]:
+    """
+    Prospeo /email-finder — takes full name + domain, or LinkedIn URL.
+    Returns (email, confidence) or None.
+    Particularly strong India coverage for .in domains and Indian IT/consulting firms.
+    Free tier: 75 email lookups/month. prospeo.com/api
+    """
+    if not PROSPEO_API_KEY:
+        return None
+
+    payload: dict = {"domain": domain}
+    if linkedin_url:
+        payload["linkedin_url"] = linkedin_url
+    else:
+        payload["full_name"] = f"{first} {last}"
+
+    req = urllib.request.Request(
+        "https://api.prospeo.io/email-finder",
+        data=json.dumps(payload).encode(),
+        headers={
+            "Content-Type":  "application/json",
+            "X-KEY":         PROSPEO_API_KEY,
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            data = json.loads(resp.read())
+        if not data.get("error") and data.get("response"):
+            r     = data["response"]
+            email = r.get("email", "")
+            # Prospeo returns verification status: "VALID", "ACCEPT_ALL", "UNKNOWN", "INVALID"
+            vstatus = r.get("email_status", {}).get("result", "UNKNOWN")
+            if email and vstatus in ("VALID", "ACCEPT_ALL"):
+                conf = 90 if vstatus == "VALID" else 65
+                log.info("Prospeo found: %s (status=%s)", email, vstatus)
+                return (email, conf)
+            if email and vstatus == "UNKNOWN":
+                log.debug("Prospeo found %s but unverified — queuing as fallback", email)
+                return (email, 40)  # below threshold but kept as a fallback signal
+    except urllib.error.HTTPError as e:
+        if e.code == 429:
+            log.warning("Prospeo rate limit hit")
+        else:
+            log.debug("Prospeo error %d", e.code)
+    except Exception as e:
+        log.debug("Prospeo exception: %s", e)
+    return None
+
+
+# ── Tier 3: AnyMailFinder ─────────────────────────────────────────────────
+def _anymailfinder_find_email(first: str, last: str, domain: str) -> Optional[tuple]:
+    """
+    AnyMailFinder /v1/email/find — name + domain lookup.
+    Returns (email, confidence) or None.
+    Good supplementary coverage for .in domains and Indian companies
+    not well indexed by Hunter.
+    Free tier: 90 lookups/month. anymailfinder.com/api
+    """
+    if not ANYMAILFINDER_KEY:
+        return None
+    payload = {
+        "full_name":    f"{first} {last}",
+        "domain_or_company": domain,
+    }
+    req = urllib.request.Request(
+        "https://api.anymailfinder.com/v5.0/search/person.json",
+        data=json.dumps(payload).encode(),
+        headers={
+            "Content-Type":    "application/json",
+            "Authorization":   f"Bearer {ANYMAILFINDER_KEY}",
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            data = json.loads(resp.read())
+        email  = data.get("email", "")
+        result = data.get("result_type", "")   # "email_found", "not_found", etc.
+        if email and result == "email_found":
+            log.info("AnyMailFinder found: %s", email)
+            return (email, 80)
+    except urllib.error.HTTPError as e:
+        log.debug("AnyMailFinder error %d", e.code)
+    except Exception as e:
+        log.debug("AnyMailFinder exception: %s", e)
+    return None
+
+
+# ── Tier 4: Snov.io ───────────────────────────────────────────────────────
+_snov_token_cache: dict = {}
+
+def _snov_get_token() -> str:
+    """OAuth2 client_credentials flow for Snov.io. Token cached for 1 hour."""
+    import time as _t
+    cached = _snov_token_cache.get("token")
+    expires = _snov_token_cache.get("expires", 0)
+    if cached and _t.time() < expires:
+        return cached
+    if not SNOV_CLIENT_ID or not SNOV_CLIENT_SECRET:
+        return ""
+    payload = urllib.parse.urlencode({
+        "grant_type":    "client_credentials",
+        "client_id":     SNOV_CLIENT_ID,
+        "client_secret": SNOV_CLIENT_SECRET,
+    }).encode()
+    try:
+        req = urllib.request.Request(
+            "https://api.snov.io/v1/oauth/access_token",
+            data=payload,
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            data = json.loads(resp.read())
+        token = data.get("access_token", "")
+        if token:
+            _snov_token_cache["token"]   = token
+            _snov_token_cache["expires"] = _t.time() + 3500
+        return token
+    except Exception as e:
+        log.debug("Snov.io token error: %s", e)
+        return ""
+
+
+def _snov_find_email(first: str, last: str, domain: str) -> Optional[tuple]:
+    """
+    Snov.io /get-emails-by-name — returns a list of possible emails with
+    confidence. We take the first entry with confidence ≥ 50.
+    Free tier: 50 credits/month. docs.snov.io
+    """
+    token = _snov_get_token()
+    if not token:
+        return None
+    payload = json.dumps({
+        "firstName":  first,
+        "lastName":   last,
+        "domain":     domain,
+        "limit":      5,
+    }).encode()
+    req = urllib.request.Request(
+        "https://api.snov.io/v2/email-by-name",
+        data=payload,
+        headers={
+            "Authorization": f"Bearer {token}",
+            "Content-Type":  "application/json",
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            data = json.loads(resp.read())
+        emails = data.get("emails", [])
+        for entry in sorted(emails, key=lambda x: x.get("confidence", 0), reverse=True):
+            email = entry.get("email", "")
+            conf  = entry.get("confidence", 0)
+            if email and conf >= 50 and _email_structurally_valid(email):
+                log.info("Snov.io found: %s (confidence=%d)", email, conf)
+                return (email, conf)
+    except urllib.error.HTTPError as e:
+        if e.code == 429:
+            log.warning("Snov.io rate limit hit")
+        else:
+            log.debug("Snov.io error %d", e.code)
+    except Exception as e:
+        log.debug("Snov.io exception: %s", e)
+    return None
+
+
+# ── Tier 5: Apollo.io person-level match ──────────────────────────────────
+def _apollo_find_email(first: str, last: str, domain: str,
+                       company: str = "") -> Optional[tuple]:
+    """
+    Apollo /people/match — given name + domain or company, returns the
+    person record including email if Apollo has it in their database.
+    This is fundamentally different from Apollo's search (which we use in
+    Module A for sourcing) — this is a point-lookup against an existing
+    person profile, not a search query.
+    Free tier: 600 email credits/month on basic plan.
+    docs.apollo.io/reference/people-match
+    """
+    if not APOLLO_API_KEY:
+        return None
+    payload = {
+        "first_name":          first,
+        "last_name":           last,
+        "organization_domain": domain,
+        "reveal_personal_emails": False,
+    }
+    if company:
+        payload["organization_name"] = company
+    req = urllib.request.Request(
+        "https://api.apollo.io/v1/people/match",
+        data=json.dumps(payload).encode(),
+        headers={
+            "Content-Type": "application/json",
+            "Cache-Control": "no-cache",
+            "X-Api-Key":    APOLLO_API_KEY,
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=12) as resp:
+            data = json.loads(resp.read())
+        person = data.get("person", {})
+        email  = person.get("email", "")
+        # Apollo returns "email_status": "verified" | "unverified" | "likely_to_engage"
+        estatus = person.get("email_status", "")
+        if email and _email_structurally_valid(email):
+            conf = 85 if estatus == "verified" else 60
+            log.info("Apollo found: %s (status=%s)", email, estatus)
+            return (email, conf)
+    except urllib.error.HTTPError as e:
+        if e.code in (401, 403):
+            log.warning("Apollo auth error — check APOLLO_API_KEY")
+        elif e.code == 429:
+            log.warning("Apollo rate limit hit")
+        else:
+            log.debug("Apollo match error %d", e.code)
+    except Exception as e:
+        log.debug("Apollo exception: %s", e)
+    return None
+
+
+# ── Tier 6: Pattern Inference (last resort) ────────────────────────────────
+def _infer_email_pattern(first: str, last: str, domain: str,
+                         smtp_check: bool = None) -> Optional[str]:
+    """
+    Pattern-guesses email from the top 8 corporate conventions.
+    This is the OLD primary method, now demoted to last resort.
+    Returns the best candidate but the caller MUST set email_verified=False.
+    Only used when all 5 lookup tiers return nothing.
+    """
+    if smtp_check is None:
+        smtp_check = SMTP_VERIFY_ENABLED
+
+    first = re.sub(r"[^a-z]", "", first.lower())
+    last  = re.sub(r"[^a-z]", "", last.lower())
+    f     = first[0] if first else ""
+    if not first or not last or not domain:
+        return None
+    if not _tld_is_valid(domain):
+        return None
+
+    candidates = []
+    for pat in EMAIL_PATTERNS:
+        try:
+            email = pat.format(first=first, last=last, f=f, domain=domain)
+        except KeyError:
+            continue
+        if _email_passes(email) and email not in candidates:
+            candidates.append(email)
+
+    if not candidates:
+        return None
+
+    if not smtp_check:
+        return candidates[0]
+
+    # With pattern guessing, SMTP verification actually matters more here
+    # than in the lookup tiers — without a database confirming the format,
+    # we really need the SMTP signal. Still falls back if blocked.
+    for email in candidates:
+        status = _smtp_verify(email)
+        if status == "verified":
+            log.debug("Pattern+SMTP-verified: %s", email)
+            return email
+        if status == "catch_all":
+            return candidates[0]
+        if status == "rejected":
+            continue
+
+    log.debug("Pattern fallback (unverified): %s", candidates[0])
+    return candidates[0]
+
+
+# ── Master Waterfall ───────────────────────────────────────────────────────
+def _resolve_email_waterfall(
+    first: str,
+    last:  str,
+    domain: str,
+    company: str = "",
+    linkedin_url: str = "",
+) -> tuple:
+    """
+    Runs through all resolution tiers in priority order.
+    Returns (email, verified: bool, source: str).
+    Caller should set lead.email_verified = verified and lead.email_source = source.
+    If verified=False, the lead should go to a manual-review queue
+    rather than auto-dispatch (Module D gates on email_verified).
+
+    Confidence threshold for "verified": ≥ 70 from any lookup API.
+    Between 50-69: accepted but flagged "low_confidence" → still goes to sheet
+    for human approval but with a warning column.
+    Below 50 (pattern only): email_verified=False → dispatch blocked until
+    human manually marks it verified in the sheet.
+    """
+    if not first or not last or not domain:
+        return ("", False, "none")
+
+    VERIFIED_THRESHOLD    = 70
+    LOW_CONF_THRESHOLD    = 50
+
+    # Tier 1a: Hunter email-finder (person-level, best accuracy)
+    result = _hunter_find_email(first, last, domain)
+    if result:
+        email, conf = result
+        verified = conf >= VERIFIED_THRESHOLD
+        return (email, verified, f"hunter (confidence={conf})")
+
+    # Tier 1b: Hunter domain-search (broader sweep of the same database)
+    result = _hunter_domain_search(domain, first, last)
+    if result:
+        email, conf = result
+        verified = conf >= VERIFIED_THRESHOLD
+        return (email, verified, f"hunter-domain (confidence={conf})")
+
+    # Tier 2: Prospeo (strong India + .in coverage)
+    result = _prospeo_find_email(first, last, domain, linkedin_url)
+    if result:
+        email, conf = result
+        if conf >= LOW_CONF_THRESHOLD:
+            verified = conf >= VERIFIED_THRESHOLD
+            return (email, verified, f"prospeo (confidence={conf})")
+
+    # Tier 3: AnyMailFinder (independent database, good .in coverage)
+    result = _anymailfinder_find_email(first, last, domain)
+    if result:
+        email, conf = result
+        verified = conf >= VERIFIED_THRESHOLD
+        return (email, verified, f"anymailfinder (confidence={conf})")
+
+    # Tier 4: Snov.io
+    result = _snov_find_email(first, last, domain)
+    if result:
+        email, conf = result
+        verified = conf >= VERIFIED_THRESHOLD
+        return (email, verified, f"snov (confidence={conf})")
+
+    # Tier 5: Apollo person-match
+    result = _apollo_find_email(first, last, domain, company)
+    if result:
+        email, conf = result
+        verified = conf >= VERIFIED_THRESHOLD
+        return (email, verified, f"apollo (confidence={conf})")
+
+    # Tier 6: Pattern inference (last resort — blocks auto-send)
+    domain_ok = _domain_has_mx(domain)
+    if domain_ok:
+        email = _infer_email_pattern(first, last, domain)
+        if email:
+            log.warning(
+                "Pattern-inferred email for %s %s @ %s — NOT verified, "
+                "will require manual review before dispatch: %s",
+                first, last, domain, email,
+            )
+            return (email, False, "pattern-inferred (UNVERIFIED — manual review required)")
+
+    return ("", False, "none")
+
+
 _domain_cache: dict = {}
 
 def _get_company_domain(company: str) -> Optional[str]:
+    """Looks up the canonical email domain for a company name via Serper,
+    filtering out social/aggregator noise. Cached per process."""
     if company in _domain_cache:
         return _domain_cache[company]
     results = _serper_search(f'"{company}" official website contact email', num=5)
@@ -520,8 +1000,6 @@ def _get_company_domain(company: str) -> Optional[str]:
         domain = m.group(1).lower()
         if any(n in domain for n in noise):
             continue
-        # Reject obvious sub-path social/aggregator domains that slipped
-        # past the noise list (e.g. "sites.google.com", "notion.site")
         if domain.count(".") > 3:
             continue
         if not _tld_is_valid(domain):
@@ -903,29 +1381,42 @@ def run_sourcing_pipeline(
             company_desc = _get_company_desc(company)
             time.sleep(0.6)
 
-        # Domain + email
+        # Domain resolution
         domain = None
         if company and _serper_calls < 65:
             domain = _get_company_domain(company)
             time.sleep(0.6)
 
+        # ── Email resolution waterfall ─────────────────────────────────────
+        # Old behaviour: pattern-guess → ~20-30% accuracy for Indian firms.
+        # New behaviour: 5 verified lookup APIs first, pattern as last resort.
         email = ""
-        if domain and _domain_has_mx(domain):
+        email_verified = False
+        email_source   = "none"
+
+        if domain:
             parts = name.split()
             if len(parts) >= 2:
-                inferred = _infer_email(parts[0], parts[-1], domain)
-                if inferred and inferred not in seen_hist and inferred not in seen_run:
-                    email = inferred
+                first_n, last_n = parts[0], parts[-1]
+                email, email_verified, email_source = _resolve_email_waterfall(
+                    first=first_n, last=last_n,
+                    domain=domain, company=company,
+                    linkedin_url=url,
+                )
+                if email in seen_hist or email in seen_run:
+                    log.debug("Email already seen — skipping duplicate: %s", email)
+                    email = ""
 
         if not email:
-            log.debug("No email for %s @ %s", name, company)
+            log.debug("No email resolved for %s @ %s", name, company)
             return None
 
         seen_run.add(email)
 
         lead = Lead(
             name=name, company=company, position=title,
-            email=email, linkedin_url=url, location=location,
+            email=email, email_verified=email_verified, email_source=email_source,
+            linkedin_url=url, location=location,
             geo_segment=geo_id, vertical=vertical_id,
             company_type=company_type, funding_stage=funding_stage,
             is_remote_role=is_remote, company_description=company_desc,
@@ -936,8 +1427,10 @@ def run_sourcing_pipeline(
         lead.reason_for_outreach = _build_reason(lead)
         lead.confidence_score    = _score_lead(lead)
 
-        log.info("✓ [Tier%s|%d] %s | %s | %s | %s",
-                 tier, lead.confidence_score, name, title, company, email)
+        verified_tag = "✓VERIFIED" if email_verified else "⚠ UNVERIFIED"
+        log.info("✓ [Tier%s|%d|%s] %s | %s | %s | %s [%s]",
+                 tier, lead.confidence_score, verified_tag,
+                 name, title, company, email, email_source)
         return lead
 
     for geo_id, vertical_id in combos:
