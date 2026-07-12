@@ -298,3 +298,22 @@ def write_leads(
 
     xlsx_path = write_to_excel(leads_with_drafts, excel_path)
     return xlsx_path
+
+# Orchestrator-compatible aliases
+def append_leads(leads, spreadsheet_id=None, excel_path="output/outbound_pipeline.xlsx"):
+    return write_leads(leads, spreadsheet_id=spreadsheet_id, excel_path=excel_path)
+
+def export_excel(leads, output_path="output/outbound_pipeline.xlsx"):
+    return write_to_excel(leads, output_path=output_path)
+
+def get_stats(spreadsheet_id, worksheet_name="Outbound Pipeline"):
+    gc = get_gspread_client()
+    ws = gc.open_by_key(spreadsheet_id).worksheet(worksheet_name)
+    rows = ws.get_all_records()
+    total = len(rows)
+    approved = sum(1 for r in rows if r.get("Approval Status","").lower() == "approved")
+    pending  = sum(1 for r in rows if r.get("Approval Status","").lower() == "pending")
+    sent     = sum(1 for r in rows if "sent" in r.get("Approval Status","").lower())
+    unverified = sum(1 for r in rows if str(r.get("Email Verified","")).upper() not in ("TRUE","YES","1"))
+    return {"total": total, "approved": approved, "pending": pending,
+            "sent": sent, "unverified_emails": unverified}
