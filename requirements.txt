@@ -1,24 +1,21 @@
-# ══════════════════════════════════════════════════════
-# Outbound Sniper — Python dependencies
-# Python 3.11 (pinned in Actions workflow)
-# ══════════════════════════════════════════════════════
+# Search & scraping
+requests==2.31.0
+
+# Google APIs
+gspread==6.1.2
+google-auth==2.29.0
+google-auth-oauthlib==1.2.0
+google-auth-httplib2==0.2.0
+google-api-python-client==2.126.0
+
+# Email verification
+dnspython==2.6.1
+
+# Timezone
+pytz==2024.1
+
+# Excel output
+openpyxl==3.1.2
 
 # Environment
 python-dotenv==1.0.1
-
-# Timezone handling
-pytz==2024.2
-
-# LinkedIn unofficial client (cookie-based, free)
-# Pinned to avoid breaking API changes
-linkedin-api
-
-# DNS verification for email inference (no paid API needed)
-dnspython==2.7.0
-
-# Excel export (pipeline.xlsx)
-openpyxl==3.1.5
-
-# HTTP — stdlib urllib used for Serper + Gemini (no extra dep needed)
-# smtplib — stdlib (no dep)
-# csv     — stdlib (no dep)
