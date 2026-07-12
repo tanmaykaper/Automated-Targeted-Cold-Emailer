@@ -121,7 +121,7 @@ jobs:
           LINKEDIN_USERNAME: ${{ secrets.LINKEDIN_USERNAME }}
           LINKEDIN_PASSWORD: ${{ secrets.LINKEDIN_PASSWORD }}
           OUTREACH_MODE:     ${{ secrets.OUTREACH_MODE || 'internship' }}
-          WEEKLY_TARGET:     ${{ secrets.WEEKLY_TARGET || '25' }}
+          WEEKLY_TARGET:     ${{ secrets.WEEKLY_TARGET || '35' }}
           SCORE_THRESHOLD:   ${{ secrets.SCORE_THRESHOLD || '55' }}
           ACTION:            source
         run: python orchestrator.py
