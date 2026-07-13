@@ -22,19 +22,36 @@
 #
 # REQUIRED GITHUB SECRETS  (Settings → Secrets → Actions → New repository secret):
 #   SERPER_API_KEY       serper.dev API key (free: 2500 searches/month)
-#   LINKEDIN_USERNAME    Secondary LinkedIn account email
-#   LINKEDIN_PASSWORD    Secondary LinkedIn account password
-#   GEMINI_API_KEY       Google AI Studio key (free: aistudio.google.com)
+#   GROQ_API_KEY          console.groq.com API key (free tier) — module_c actually
+#                          calls Groq (openai/gpt-oss-120b), not Gemini, despite
+#                          older references to "Gemini" elsewhere in this repo.
 #   SENDER_EMAIL         tanmay.kaper1401@gmail.com
 #   GMAIL_APP_PASSWORD   16-char App Password (myaccount.google.com → Security → App Passwords)
 #
+# RECOMMENDED — email waterfall (all have free tiers; without these, every
+# lead falls back to unverified pattern-guessing, which is what "sourcing
+# results in nothing but pattern inference" usually means in practice):
+#   HUNTER_API_KEY        hunter.io          — 25 verified lookups/mo free
+#   PROSPEO_API_KEY       prospeo.io         — 75 lookups/mo free, strong India coverage
+#   ANYMAILFINDER_KEY     anymailfinder.com  — 90 lookups/mo free, good for .in domains
+#   SNOV_CLIENT_ID / SNOV_CLIENT_SECRET   snov.io — 50 credits/mo free
+#   APOLLO_API_KEY         apollo.io         — 600 credits/mo free
+#
+# LEFT UNSET ON PURPOSE — do not set these on your primary/daily LinkedIn
+# account. See modules/module_a_sourcing.py header + README "LinkedIn
+# sourcing" section. ENABLE_LINKEDIN_AUTOMATION defaults to false; the
+# pipeline works fully without it via state/manual_leads_inbox.csv instead.
+#   LINKEDIN_USERNAME, LINKEDIN_PASSWORD, ENABLE_LINKEDIN_AUTOMATION
+#
 # OPTIONAL SECRETS (have defaults):
-#   OUTREACH_MODE        internship (default) | job
-#   WEEKLY_TARGET        25 (leads to source per week)
-#   WEEKLY_CAP           20 (max emails sent per week)
-#   MAX_PER_RUN          5  (max per dispatch run)
-#   SCORE_THRESHOLD      55 (minimum lead quality score 0-100)
-#   GEMINI_MODEL         gemini-2.0-flash (default)
+#   OUTREACH_MODE          internship (default) | job
+#   WEEKLY_TARGET           25 (leads to source per week)
+#   WEEKLY_CAP              20 (max emails sent per week)
+#   MAX_PER_RUN             5  (max per dispatch run)
+#   SCORE_THRESHOLD         55 (minimum lead quality score 0-100)
+#   REQUIRE_VERIFIED_EMAIL  false — set true once waterfall keys above are
+#                            configured, to block sends to pattern-guessed
+#                            (unverified) addresses entirely.
 # ══════════════════════════════════════════════════════════════════════════════
 
 name: Outbound Sniper
@@ -58,7 +75,7 @@ on:
         required: true
         default: "draft"
         type: choice
-        options: [source, draft, dispatch]
+        options: [source, manual_intake, draft, dispatch]
       dry_run:
         description: "Dry run — log but do not send emails"
         required: false
@@ -120,6 +137,7 @@ jobs:
           SERPER_API_KEY:    ${{ secrets.SERPER_API_KEY }}
           LINKEDIN_USERNAME: ${{ secrets.LINKEDIN_USERNAME }}
           LINKEDIN_PASSWORD: ${{ secrets.LINKEDIN_PASSWORD }}
+          ENABLE_LINKEDIN_AUTOMATION: ${{ secrets.ENABLE_LINKEDIN_AUTOMATION || 'false' }}
           OUTREACH_MODE:     ${{ secrets.OUTREACH_MODE || 'internship' }}
           WEEKLY_TARGET:     ${{ secrets.WEEKLY_TARGET || '35' }}
           SCORE_THRESHOLD:   ${{ secrets.SCORE_THRESHOLD || '55' }}
@@ -138,6 +156,58 @@ jobs:
           git config user.email "outbound-bot@users.noreply.github.com"
           git add state/pipeline.csv state/pipeline.xlsx
           git diff --staged --quiet || git commit -m "bot: source run $(date -u +'%Y-%m-%d')"
+          git push
+
+  # ════════════════════════════════════════════════════════════════════════
+  # MANUAL INTAKE — run on demand after you've pasted rows into
+  # state/manual_leads_inbox.csv from a manual LinkedIn Premium / Sales
+  # Navigator browsing session. No LinkedIn automation — see
+  # modules/module_a_manual_intake.py.
+  # ════════════════════════════════════════════════════════════════════════
+  manual_intake:
+    name: "🖐️ Manual LinkedIn Intake"
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'manual_intake'
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run manual intake pipeline
+        working-directory: modules
+        env:
+          SERPER_API_KEY:    ${{ secrets.SERPER_API_KEY }}
+          HUNTER_API_KEY:    ${{ secrets.HUNTER_API_KEY }}
+          PROSPEO_API_KEY:   ${{ secrets.PROSPEO_API_KEY }}
+          ANYMAILFINDER_KEY: ${{ secrets.ANYMAILFINDER_KEY }}
+          SNOV_CLIENT_ID:    ${{ secrets.SNOV_CLIENT_ID }}
+          SNOV_CLIENT_SECRET: ${{ secrets.SNOV_CLIENT_SECRET }}
+          APOLLO_API_KEY:    ${{ secrets.APOLLO_API_KEY }}
+          OUTREACH_MODE:     ${{ github.event.inputs.outreach_mode || secrets.OUTREACH_MODE || 'internship' }}
+          ACTION:            manual_intake
+        run: python orchestrator.py
+
+      - name: Commit pipeline + cleared inbox rows
+        run: |
+          git config user.name  "outbound-bot[actions]"
+          git config user.email "outbound-bot@users.noreply.github.com"
+          git add state/pipeline.csv state/pipeline.xlsx state/manual_leads_inbox.csv
+          git diff --staged --quiet || git commit -m "bot: manual intake $(date -u +'%Y-%m-%d')"
           git push
 
   # ════════════════════════════════════════════════════════════════════════
