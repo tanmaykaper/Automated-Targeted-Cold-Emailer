@@ -100,6 +100,32 @@ def run_manual_intake() -> dict:
 
 
 # ══════════════════════════════════════════════════════════════════════════
+# APOLLO IMPORT — leads manually exported from Apollo.io's UI (no API, no
+# automation), deduplicated against the whole existing pipeline and
+# against each other. See import_apollo_export.py.
+# ══════════════════════════════════════════════════════════════════════════
+
+def run_apollo_import() -> dict:
+    log.info("══ ACTION: APOLLO_IMPORT ══")
+    from import_apollo_export      import run_apollo_import as _import
+    from module_b_spreadsheet import append_leads, get_stats, export_excel
+
+    leads = _import()
+    added = append_leads(leads)
+    stats = get_stats()
+    export_excel()
+
+    _summary(f"""## 📥 Apollo Import Run
+| | |
+|---|---|
+| New leads added | **{added}** |
+| Total in pipeline | {stats['total']} |
+| Pending (no draft) | {stats['no_draft']} |
+""")
+    return {"added": added, "stats": stats}
+
+
+# ══════════════════════════════════════════════════════════════════════════
 # DRAFT  (fully independent — no dependency on source job)
 # ══════════════════════════════════════════════════════════════════════════
 
@@ -173,9 +199,10 @@ def run_dispatch() -> dict:
 
 if __name__ == "__main__":
     dispatch = {"source": run_source, "manual_intake": run_manual_intake,
+                "apollo_import": run_apollo_import,
                 "draft": run_draft, "dispatch": run_dispatch}
     if ACTION not in dispatch:
-        log.error("Unknown ACTION='%s' — use: source | manual_intake | draft | dispatch", ACTION)
+        log.error("Unknown ACTION='%s' — use: source | manual_intake | apollo_import | draft | dispatch", ACTION)
         sys.exit(1)
     result = dispatch[ACTION]()
     print(json.dumps(result, indent=2, default=str))
