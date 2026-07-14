@@ -34,7 +34,7 @@ log = logging.getLogger(__name__)
 
 ACTION    = os.getenv("ACTION",        "source").lower()
 DRY_RUN   = os.getenv("DRY_RUN",      "false").lower() == "true"
-FORCE_WIN = os.getenv("FORCE_WINDOW", "false").lower() == "true"
+FORCE_WIN = os.getenv("FORCE_WINDOW", "true").lower() == "true"
 
 GH_SUMMARY = os.getenv("GITHUB_STEP_SUMMARY", "")
 
