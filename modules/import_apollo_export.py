@@ -24,12 +24,21 @@ Apollo, so the score is recorded (visible in pipeline.xlsx) for your own
 triage rather than used as a silent filter. Rows ARE still dropped if the
 title matches a REJECT_TITLES pattern (recruiter/HR/etc.) or there's no
 usable email, same as everywhere else in the pipeline.
+
+Company Description is NOT taken from Apollo's own Industry/Keywords
+fields (too generic — usually just a one- or two-word category). It's
+researched live via the same Serper company-overview lookup the rest of
+the pipeline uses, cached per company for this run so multiple contacts
+from the same firm only cost one lookup. Requires SERPER_API_KEY to be
+set; without it this field is left blank rather than falling back to the
+generic Apollo text.
 """
 
 import csv
 import glob
 import logging
 import shutil
+import time
 from pathlib import Path
 from datetime import datetime, timezone
 
@@ -38,8 +47,9 @@ sys.path.insert(0, str(pathlib.Path(__file__).parent))
 
 from module_a_sourcing import (
     Lead, _title_tier, _classify_company, _is_remote,
-    _build_reason, _score_lead, _load_seen_emails,
+    _build_reason, _score_lead, _load_seen_emails, _get_company_desc,
 )
+import module_a_sourcing as _sourcing
 from config import OUTREACH_MODE
 
 log = logging.getLogger(__name__)
@@ -49,6 +59,30 @@ IMPORT_DIR  = STATE_DIR / "apollo_imports"
 DONE_DIR    = IMPORT_DIR / "done"
 
 BAD_EMAIL_MARKERS = ("not_unlocked", "email_not_unlocked", "no_email", "")
+
+# Apollo's own "Industry"/"Keywords" fields are too generic to use as the
+# outreach-facing Company Description (e.g. just "management consulting").
+# Real descriptions are researched live via the same Serper lookup the rest
+# of the pipeline uses, cached per company for this run — several contacts
+# from the same firm (very common in an Apollo export) share one lookup
+# instead of paying for it per row.
+_company_desc_cache: dict = {}
+
+
+def _researched_company_desc(company: str) -> str:
+    key = company.strip().lower()
+    if not key:
+        return ""
+    if key in _company_desc_cache:
+        return _company_desc_cache[key]
+    if _sourcing._serper_calls >= _sourcing._SERPER_CALL_CEILING:
+        log.warning("Serper call budget exhausted for this run — leaving "
+                    "Company Description blank for %s and any companies after it", company)
+        return ""
+    desc = _get_company_desc(company)
+    time.sleep(0.6)
+    _company_desc_cache[key] = desc
+    return desc
 
 
 def _row_to_lead(row: dict, week_num: int) -> "Lead | None":
@@ -74,13 +108,16 @@ def _row_to_lead(row: dict, week_num: int) -> "Lead | None":
     location    = ", ".join(p for p in (city, country) if p)
     industry    = (row.get("Industry") or "").strip()
     keywords    = (row.get("Keywords") or "").strip()
-    pseudo_desc = f"{industry} {keywords}".strip()
+    # Only used to help classify company type / remote-ness — never shown
+    # to the recipient or stored as the Company Description.
+    classification_hint = f"{industry} {keywords}".strip()
 
     email_status = (row.get("Email Status") or "").strip().lower()
     verified = email_status == "verified"
 
-    company_type, funding_stage = _classify_company(company, pseudo_desc)
-    is_remote = _is_remote(pseudo_desc, title, location)
+    company_type, funding_stage = _classify_company(company, classification_hint)
+    is_remote = _is_remote(classification_hint, title, location)
+    company_desc = _researched_company_desc(company) if company else ""
 
     lead = Lead(
         name=name, company=company, position=title,
@@ -89,7 +126,7 @@ def _row_to_lead(row: dict, week_num: int) -> "Lead | None":
         linkedin_url=linkedin, location=location,
         geo_segment="MANUAL", vertical="MANUAL",
         company_type=company_type, funding_stage=funding_stage,
-        is_remote_role=is_remote, company_description=pseudo_desc,
+        is_remote_role=is_remote, company_description=company_desc,
         title_tier=tier, outreach_mode=OUTREACH_MODE,
         source="Apollo-Manual-Export",
         week_sourced=f"{datetime.now(timezone.utc).year}-W{week_num:02d}",
