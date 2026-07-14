@@ -85,7 +85,7 @@ on:
       force_window:
         description: "Force dispatch — skip timezone window check"
         required: false
-        default: "false"
+        default: "true"
         type: choice
         options: ["true", "false"]
       outreach_mode:
@@ -297,7 +297,7 @@ jobs:
           MAX_PER_RUN:        ${{ secrets.MAX_PER_RUN || '10' }}
           WEEKLY_CAP:         ${{ secrets.WEEKLY_CAP || '40' }}
           DRY_RUN:            ${{ github.event.inputs.dry_run || 'false' }}
-          FORCE_WINDOW:       ${{ github.event.inputs.force_window || 'false' }}
+          FORCE_WINDOW:       ${{ github.event.inputs.force_window || 'true' }}
           ACTION:             dispatch
         run: python orchestrator.py
 
