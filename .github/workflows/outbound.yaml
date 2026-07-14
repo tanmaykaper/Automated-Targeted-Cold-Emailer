@@ -75,7 +75,7 @@ on:
         required: true
         default: "draft"
         type: choice
-        options: [source, manual_intake, draft, dispatch]
+        options: [source, manual_intake, apollo_import, draft, dispatch]
       dry_run:
         description: "Dry run — log but do not send emails"
         required: false
@@ -208,6 +208,49 @@ jobs:
           git config user.email "outbound-bot@users.noreply.github.com"
           git add state/pipeline.csv state/pipeline.xlsx state/manual_leads_inbox.csv
           git diff --staged --quiet || git commit -m "bot: manual intake $(date -u +'%Y-%m-%d')"
+          git push
+
+  # ════════════════════════════════════════════════════════════════════════
+  # APOLLO IMPORT — run on demand after committing manually-exported Apollo
+  # CSVs into state/apollo_imports/. See modules/import_apollo_export.py.
+  # ════════════════════════════════════════════════════════════════════════
+  apollo_import:
+    name: "📥 Apollo Import"
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'apollo_import'
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run Apollo import
+        working-directory: modules
+        env:
+          OUTREACH_MODE: ${{ github.event.inputs.outreach_mode || secrets.OUTREACH_MODE || 'internship' }}
+          ACTION:        apollo_import
+        run: python orchestrator.py
+
+      - name: Commit pipeline + processed import files
+        run: |
+          git config user.name  "outbound-bot[actions]"
+          git config user.email "outbound-bot@users.noreply.github.com"
+          git add state/pipeline.csv state/pipeline.xlsx state/apollo_imports/
+          git diff --staged --quiet || git commit -m "bot: apollo import $(date -u +'%Y-%m-%d')"
           git push
 
   # ════════════════════════════════════════════════════════════════════════
