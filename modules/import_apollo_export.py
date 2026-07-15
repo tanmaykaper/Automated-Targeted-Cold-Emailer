@@ -168,16 +168,24 @@ def run_apollo_import() -> dict:
                           for r in read_all_leads() if r["Target Email"].strip()}
 
     week_num = datetime.now(timezone.utc).isocalendar()[1]
-    seen_batch: set = set()   # dedup across this run's own files
+    seen_batch: set = set()        # dedup across this run's own files (new leads)
+    refreshed_emails: set = set()  # dedup refreshes — same person appears in
+                                    # multiple of your overlapping Apollo files
 
     new_leads = []
-    checked = updated = skipped_bad = skipped_already_good = 0
+    checked = skipped_bad = skipped_already_good = 0
 
     def _process(path: str, is_new_file: bool) -> None:
-        nonlocal updated, checked, skipped_bad, skipped_already_good
+        nonlocal checked, skipped_bad, skipped_already_good
         with open(path, newline="", encoding="utf-8") as f:
             for row in csv.DictReader(f):
                 cheap_email = (row.get("Email") or "").strip().lower()
+
+                # Already handled earlier in THIS run (e.g. the same person
+                # showed up in 2 of your overlapping exports) — skip outright,
+                # no re-lookup, no re-write.
+                if cheap_email and cheap_email in refreshed_emails:
+                    continue
 
                 # Cheap skip BEFORE spending a Serper call: already in the
                 # pipeline with a real researched description on file.
@@ -213,7 +221,7 @@ def run_apollo_import() -> dict:
                 if lead.email in existing_by_email or lead.email in seen_batch:
                     if refresh_lead_context(lead.email, lead.company_description,
                                             lead.reason_for_outreach, lead.confidence_score):
-                        updated += 1
+                        refreshed_emails.add(lead.email)
                     continue
 
                 seen_batch.add(lead.email)
@@ -226,6 +234,8 @@ def run_apollo_import() -> dict:
         _process(path, is_new_file=True)
     for path in archived_paths:
         _process(path, is_new_file=False)
+
+    updated = len(refreshed_emails)
 
     log.info("Apollo import: %d new leads, %d existing rows refreshed, "
               "%d already-good skipped, %d unusable skipped (%d checked)",
