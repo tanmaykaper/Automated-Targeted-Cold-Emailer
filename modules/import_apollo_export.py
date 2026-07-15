@@ -47,7 +47,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).parent))
 
 from module_a_sourcing import (
     Lead, _title_tier, _classify_company, _is_remote,
-    _build_reason, _score_lead, _load_seen_emails, _get_company_desc,
+    _build_reason, _score_lead, _get_company_desc,
 )
 import module_a_sourcing as _sourcing
 from config import OUTREACH_MODE
@@ -136,43 +136,92 @@ def _row_to_lead(row: dict, week_num: int) -> "Lead | None":
     return lead
 
 
-def run_apollo_import() -> list:
+def run_apollo_import() -> dict:
+    """Processes any new CSVs sitting in state/apollo_imports/, AND sweeps
+    state/apollo_imports/done/ (everything already processed by a prior
+    run). New emails get appended as before. Emails that already exist in
+    the pipeline get their Company Description / Reason for Outreach /
+    Confidence Score refreshed IN PLACE (no duplicate row) — but only if
+    the description currently on file still looks thin (e.g. from before
+    the Serper-researched description existed, or a company Serper simply
+    didn't have anything for last time). Rows that already have a decent
+    description are left alone and never cost a Serper call, so re-running
+    this repeatedly is cheap once things are fixed.
+
+    This means simply re-running the action (no re-upload needed) is
+    exactly how you backfill better research onto leads already sitting
+    in state/pipeline.csv from before.
+    """
     IMPORT_DIR.mkdir(parents=True, exist_ok=True)
     DONE_DIR.mkdir(parents=True, exist_ok=True)
 
-    csv_paths = sorted(glob.glob(str(IMPORT_DIR / "*.csv")))
-    if not csv_paths:
-        log.info("No CSVs in %s — nothing to import.", IMPORT_DIR)
-        return []
+    new_paths      = sorted(glob.glob(str(IMPORT_DIR / "*.csv")))       # not yet processed
+    archived_paths = sorted(glob.glob(str(DONE_DIR / "*.csv")))          # already processed
+
+    if not new_paths and not archived_paths:
+        log.info("No CSVs in %s (new or archived) — nothing to do.", IMPORT_DIR)
+        return {"leads": [], "updated": 0, "checked": 0}
+
+    from module_b_spreadsheet import read_all_leads, refresh_lead_context
+
+    existing_by_email = {r["Target Email"].strip().lower(): r
+                          for r in read_all_leads() if r["Target Email"].strip()}
 
     week_num = datetime.now(timezone.utc).isocalendar()[1]
-    seen_hist = _load_seen_emails()          # everything already in pipeline.csv
-    seen_batch: set = set()                  # dedup across the Apollo files themselves
+    seen_batch: set = set()   # dedup across this run's own files
 
-    leads = []
-    skipped_dupe = skipped_bad = 0
+    new_leads = []
+    checked = updated = skipped_bad = skipped_already_good = 0
 
-    for path in csv_paths:
+    MIN_GOOD_DESC_LEN = 40   # below this, treat the stored description as still-thin/pre-fix
+
+    def _process(path: str, is_new_file: bool) -> None:
+        nonlocal updated, checked, skipped_bad, skipped_already_good
         with open(path, newline="", encoding="utf-8") as f:
             for row in csv.DictReader(f):
+                cheap_email = (row.get("Email") or "").strip().lower()
+
+                # Cheap skip BEFORE spending a Serper call: already in the
+                # pipeline with a decent description already on file.
+                if cheap_email and cheap_email in existing_by_email:
+                    current_desc = existing_by_email[cheap_email].get("Company Description", "")
+                    if len(current_desc.strip()) >= MIN_GOOD_DESC_LEN:
+                        skipped_already_good += 1
+                        continue
+
                 lead = _row_to_lead(row, week_num)
                 if lead is None:
                     skipped_bad += 1
                     continue
-                if lead.email in seen_hist or lead.email in seen_batch:
-                    skipped_dupe += 1
+                checked += 1
+
+                if lead.email in existing_by_email or lead.email in seen_batch:
+                    if refresh_lead_context(lead.email, lead.company_description,
+                                            lead.reason_for_outreach, lead.confidence_score):
+                        updated += 1
                     continue
+
                 seen_batch.add(lead.email)
-                leads.append(lead)
+                new_leads.append(lead)
 
-        shutil.move(path, DONE_DIR / Path(path).name)
+        if is_new_file:
+            shutil.move(path, DONE_DIR / Path(path).name)
 
-    log.info("Apollo import: %d files -> %d new leads (%d duplicates skipped, %d unusable skipped)",
-              len(csv_paths), len(leads), skipped_dupe, skipped_bad)
-    return leads
+    for path in new_paths:
+        _process(path, is_new_file=True)
+    for path in archived_paths:
+        _process(path, is_new_file=False)
+
+    log.info("Apollo import: %d new leads, %d existing rows refreshed, "
+              "%d already-good skipped, %d unusable skipped (%d checked)",
+              len(new_leads), updated, skipped_already_good, skipped_bad, checked)
+
+    return {"leads": new_leads, "updated": updated, "checked": checked}
 
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
-    for l in run_apollo_import():
+    result = run_apollo_import()
+    for l in result["leads"]:
         print(f"{l.confidence_score:3d} | {l.name} | {l.position} @ {l.company} | {l.email}")
+    print(f"Refreshed {result['updated']} existing rows")
