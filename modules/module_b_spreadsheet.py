@@ -178,6 +178,26 @@ def mark_sent(target_email: str, sent_at_iso: str) -> bool:
     return updated
 
 
+def refresh_lead_context(target_email: str, company_description: str,
+                          reason_for_outreach: str, confidence_score) -> bool:
+    """Updates only the researched-context fields (Company Description,
+    Reason for Outreach, Confidence Score) on an existing row, matched by
+    email. Used to backfill better research onto rows that already exist
+    — e.g. after fixing how Company Description gets generated — without
+    creating a duplicate entry or touching draft/send status."""
+    rows = _read_rows()
+    updated = False
+    for row in rows:
+        if row["Target Email"].strip().lower() == target_email.strip().lower():
+            row["Company Description"] = company_description
+            row["Reason for Outreach"] = reason_for_outreach
+            row["Confidence Score"] = str(confidence_score)
+            updated = True
+    if updated:
+        _write_rows(rows)
+    return updated
+
+
 def append_leads(leads: list) -> int:
     """Appends new leads, de-duplicated by Target Email against the full
     existing pipeline. Returns count actually added."""
