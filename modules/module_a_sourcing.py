@@ -1173,13 +1173,52 @@ def _infer_email(first: str, last: str, domain: str, smtp_check: bool = None) ->
 
 
 def _get_company_desc(company: str) -> str:
-    """One Serper call to get a short company description."""
-    results = _serper_search(f'"{company}" company overview about', num=3)
-    for r in results:
-        snip = r.get("snippet", "").strip()
-        if len(snip) > 60 and company.split()[0].lower() in snip.lower():
-            return re.sub(r"\s+", " ", snip)[:300]
-    return ""
+    """Serper call(s) to get a short company description.
+
+    Two things made this fail far more often than it should have:
+      1. Quoting the FULL company name as one exact phrase. Source data
+         (Apollo, Apollo-style exports) often includes legal suffixes
+         ("... Private Limited", "... LLP") that essentially nobody's
+         website phrases that way — an exact-phrase search on the whole
+         string routinely returns zero organic results.
+      2. Only checking whether the company name's FIRST WORD appeared in
+         the snippet. For names starting with "The", initials with
+         punctuation ("A.T. Kearney"), or anything generic, this either
+         mismatches on punctuation or is too weak a signal either way.
+
+    Fixed by: trying a quoted search first, falling back to an unquoted
+    one if that returns nothing usable, and checking whether ANY
+    significant word (len > 2) from the company name appears in the
+    snippet rather than just the first token.
+    """
+    significant_words = [w.strip(".,&").lower() for w in company.split() if len(w.strip(".,&")) > 2]
+
+    def _try(query: str) -> str:
+        results = _serper_search(query, num=5)
+        if not results:
+            log.debug("No Serper results at all for company-desc query: %s", query)
+            return ""
+        for r in results:
+            snip = r.get("snippet", "").strip()
+            if len(snip) <= 60:
+                continue
+            if not significant_words or any(w in snip.lower() for w in significant_words):
+                return re.sub(r"\s+", " ", snip)[:300]
+        log.debug("Serper returned %d result(s) for '%s' but none passed the "
+                  "relevance/length check", len(results), company)
+        return ""
+
+    desc = _try(f'"{company}" company overview about')
+    if desc:
+        return desc
+
+    # Fall back to an unquoted, looser query — much more forgiving of legal
+    # suffixes / naming variants that killed the exact-phrase version above.
+    desc = _try(f"{company} company overview")
+    if not desc:
+        log.info("Could not find a usable company description for '%s' "
+                 "(tried quoted + unquoted query)", company)
+    return desc
 
 
 # ══════════════════════════════════════════════════════════════════════════
