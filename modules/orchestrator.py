@@ -110,19 +110,20 @@ def run_apollo_import() -> dict:
     from import_apollo_export      import run_apollo_import as _import
     from module_b_spreadsheet import append_leads, get_stats, export_excel
 
-    leads = _import()
-    added = append_leads(leads)
-    stats = get_stats()
+    result = _import()
+    added  = append_leads(result["leads"])
+    stats  = get_stats()
     export_excel()
 
     _summary(f"""## 📥 Apollo Import Run
 | | |
 |---|---|
 | New leads added | **{added}** |
+| Existing rows refreshed (better research) | **{result['updated']}** |
 | Total in pipeline | {stats['total']} |
 | Pending (no draft) | {stats['no_draft']} |
 """)
-    return {"added": added, "stats": stats}
+    return {"added": added, "updated": result["updated"], "stats": stats}
 
 
 # ══════════════════════════════════════════════════════════════════════════
