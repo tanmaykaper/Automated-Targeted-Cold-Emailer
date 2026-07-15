@@ -173,8 +173,6 @@ def run_apollo_import() -> dict:
     new_leads = []
     checked = updated = skipped_bad = skipped_already_good = 0
 
-    MIN_GOOD_DESC_LEN = 40   # below this, treat the stored description as still-thin/pre-fix
-
     def _process(path: str, is_new_file: bool) -> None:
         nonlocal updated, checked, skipped_bad, skipped_already_good
         with open(path, newline="", encoding="utf-8") as f:
@@ -182,10 +180,27 @@ def run_apollo_import() -> dict:
                 cheap_email = (row.get("Email") or "").strip().lower()
 
                 # Cheap skip BEFORE spending a Serper call: already in the
-                # pipeline with a decent description already on file.
+                # pipeline with a real researched description on file.
+                #
+                # NOTE: length alone is NOT a safe signal here. Apollo's
+                # "Keywords" column is routinely 2,000-4,000+ characters
+                # (a long comma list), so the OLD pre-fix description —
+                # literally f"{Industry} {Keywords}" — is often far LONGER
+                # than any real one-paragraph Serper description would be.
+                # A length threshold gets this backwards: it treats the
+                # giant keyword dump as "already good" and skips it
+                # forever. Instead, detect the actual old value directly.
                 if cheap_email and cheap_email in existing_by_email:
-                    current_desc = existing_by_email[cheap_email].get("Company Description", "")
-                    if len(current_desc.strip()) >= MIN_GOOD_DESC_LEN:
+                    current_desc = existing_by_email[cheap_email].get("Company Description", "").strip()
+                    industry = (row.get("Industry") or "").strip()
+                    keywords = (row.get("Keywords") or "").strip()
+                    old_blend = f"{industry} {keywords}".strip()
+
+                    is_old_generic_blend = bool(current_desc) and (
+                        current_desc == old_blend
+                        or (industry and current_desc.lower().startswith(industry.lower()))
+                    )
+                    if current_desc and not is_old_generic_blend:
                         skipped_already_good += 1
                         continue
 
