@@ -22,6 +22,8 @@ import logging
 import time
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from email.mime.base import MIMEBase
+from email import encoders
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -41,6 +43,8 @@ WEEKLY_COUNT_PATH = STATE_DIR / "weekly_count.json"
 SENDER_NAME  = "Tanmay Kaper"
 SENDER_EMAIL = os.getenv("SENDER_EMAIL", "")
 GMAIL_APP_PASSWORD = os.getenv("GMAIL_APP_PASSWORD", "")
+
+RESUME_PATH = Path(__file__).resolve().parent.parent / "resume.pdf"
 
 # Optional safety gate: skip pattern-guessed (unverified) addresses unless
 # explicitly told to send them anyway. Off by default so this doesn't
@@ -143,12 +147,30 @@ def _send_via_smtp(to_email: str, subject: str, body: str) -> bool:
     if not SENDER_EMAIL or not GMAIL_APP_PASSWORD:
         log.error("SENDER_EMAIL / GMAIL_APP_PASSWORD not set — cannot send.")
         return False
+
+    if not RESUME_PATH.exists():
+        log.error("resume.pdf not found at %s — refusing to send without it. "
+                  "Add resume.pdf to the repo root.", RESUME_PATH)
+        return False
+
     try:
-        msg = MIMEMultipart("alternative")
+        # NOTE: previous version used MIMEMultipart("alternative"), which is
+        # for text/html alternatives of the SAME content — it has no concept
+        # of attachments, so nothing ever got attached even if code to
+        # attach a file were added underneath it. "mixed" is required to
+        # combine a body with a separate file attachment.
+        msg = MIMEMultipart("mixed")
         msg["From"] = f"{SENDER_NAME} <{SENDER_EMAIL}>"
         msg["To"] = to_email
         msg["Subject"] = subject
         msg.attach(MIMEText(body, "plain"))
+
+        with open(RESUME_PATH, "rb") as f:
+            part = MIMEBase("application", "pdf")
+            part.set_payload(f.read())
+        encoders.encode_base64(part)
+        part.add_header("Content-Disposition", f'attachment; filename="{RESUME_PATH.name}"')
+        msg.attach(part)
 
         with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=20) as server:
             server.login(SENDER_EMAIL, GMAIL_APP_PASSWORD)
