@@ -1,230 +1,94 @@
-# Outbound Sniper
-**Tanmay Kaper — Autonomous Cold Outreach Engine**
+# Outbound Sniper v2
+**Tanmay Kaper — targeted, verified, researched cold outreach**
 
-Perpetual, self-sufficient cold email system. Sources elite leads globally, drafts deeply personalised emails via Gemini, dispatches automatically via Gmail. Runs entirely on GitHub Actions — zero always-on infrastructure, zero paid APIs beyond pennies/month.
+Finds senior people in consulting, PE/VC, startups, research and data roles (India-first, then UK/US/SG/UAE/EU/AU),
+**verifies** their email, researches them with **source-backed facts**, scores them against the ICP, and drafts a
+short plain-text email plus two threaded follow-ups. It runs on GitHub Actions and sends from Gmail
+inside each recipient's local business hours. **Dry run is the default.**
 
----
+> v1 → v2: see [`UPGRADE_AUDIT.md`](UPGRADE_AUDIT.md) for the root causes (silently dropped crons, 64% of sends to
+> guessed addresses, hallucinated openers) and [`CLAUDE.md`](CLAUDE.md) for the architecture.
 
-## What it does
-
-Every week, automatically:
-1. **Sources** 20–25 qualified leads (managers → C-suite) across India-first, then UK/US/SG/UAE/EU/AU/Remote
-2. **Drafts** a unique, personalised email for each lead using one of 7 proven cold-email frameworks (Gemini Pro)
-3. **Dispatches** up to 20 emails/week during optimal local timezone windows — no approval needed
-4. **Logs** every send to `state/dispatch_log.jsonl`; updates `state/pipeline.xlsx` for your review
-
----
-
-## Cost breakdown
-
-| Component | Tool | Cost |
-|---|---|---|
-| Lead search | Serper.dev | Free (2,500 searches/month) |
-| Profile enrichment | linkedin-api (unofficial) | Free |
-| Email inference | Pattern logic + DNS check | Free |
-| Email drafting | Gemini 2.0 Flash | Free (1,500 req/day) |
-| Email dispatch | Gmail SMTP + App Password | Free |
-| Scheduling | GitHub Actions | Free (public repos) |
-| State / database | Git-committed CSV | Free |
-| **Total** | | **$0.00/month** |
-
----
-
-## Architecture
-
+## How it works
 ```
-Every Monday
-  04:30 UTC → [SOURCE]    Serper search × 4 geo/vertical combos
-                           LinkedIn profile enrichment
-                           Email pattern inference + DNS verify
-                           Score leads (0-100), keep ≥55
-                           Append new leads to state/pipeline.csv
-                           Export state/pipeline.xlsx
-
-  05:00 UTC → [DRAFT]     Read all Pending rows without a draft
-               (independent — no dependency on source job)
-                           Choose framework (PAS/BAB/AIDA/SAS/QVC/PPPP/FFF)
-                           Build personalised prompt → Gemini 2.0 Flash
-                           Write subject + body back to pipeline.csv
-                           Export updated pipeline.xlsx
-
-Mon/Tue/Wed/Thu
-  06:30 UTC → [DISPATCH]  Read Pending rows with draft
-                           Check target's local timezone window
-                           (Tue–Thu 9:30–11:30 AM or 2:00–4:00 PM)
-                           Send via Gmail SMTP
-                           Mark Status = Sent in CSV
-                           Commit state/ back to repo
+           ┌─ inputs/*.csv (Apollo / LinkedIn / any sheet)   ┐
+ ingest ───┼─ Apollo People API Search (if plan allows)      ├─► dedupe vs everyone ever contacted
+           └─ LinkedIn-via-search discovery (Serper/Tavily)  ┘
+ verify    domain ownership check → finder waterfall → syntax/role/MX/SMTP/API verifier
+           → VERIFIED | CATCH_ALL(conf) | UNVERIFIED_QUARANTINED | INVALID   (only the first two can ever send)
+ research  company site + news/signals + person search → facts with verbatim evidence, checked against source
+ score     title 30 · company 25 · deliverability 20 · signal 15 · hook 10 → Tier A ≥80 / B ≥60 / C dropped
+ draft     65–110 word email + 2 follow-ups → lint + critic → one rewrite → APPROVED or NEEDS_REVIEW
+ send      Mon–Thu 09:30–11:30 / 14:00–16:00 recipient-local, caps 8/day · 30/week · 4/tick, human-like gaps,
+           Gmail Sent-folder double-send guard, IMAP reply/bounce/opt-out detection before follow-ups
 ```
+One workflow (`.github/workflows/outbound.yml`) runs `python -m outreach tick` hourly on weekdays at :23.
+Every tick is idempotent, so a late or dropped GitHub cron is caught up by the next one. Each run writes a
+**Job Summary** (counts per stage, verification %, errors by category, would-send list) and commits state.
 
----
-
-## Lead targeting
-
-**Title tiers** (all included — wider net = higher reply rates):
-- **Tier A** — Founder, CEO, Partner, Managing Director, CSO, COS, President
-- **Tier B** — VP, Director, Head of [X], Principal, Engagement Manager
-- **Tier C** — Manager, Senior Analyst, Team Lead, Hiring Manager, Associate, Senior Consultant
-
-**Geographic rotation** (India = ~60% of weekly slots):
-- India: Mumbai, Bangalore, Delhi/NCR, Hyderabad, Pune, Chennai, Ahmedabad
-- International: London, US (NYC/SF/Boston), Singapore, UAE, Australia, EU, Remote/Global, Research orgs
-
-**Industry verticals** (rotated weekly):
-Management Consulting · Tech Startups · Impact/Climate Startups · PE & VC · Corporate Strategy · Economic Research & Policy · Investment Banking · Data & Analytics
-
-**Pool exhaustion?** Never. 12-week rotation × week-number query variation × 8 verticals × 16 geo segments × 3 title tiers = thousands of unique search paths. Same geo+vertical combo recurs after ~3 months with different query phrasing, surfacing new people.
-
----
-
-## Email personalisation
-
-Each email uses one of 7 frameworks, algorithmically chosen per lead:
-
-| Framework | Best for | Structure |
-|---|---|---|
-| **PAS** | Startups | Problem → Agitate → Solve |
-| **BAB** | Growth roles | Before → After → Bridge |
-| **AIDA** | Tier-1 / consulting | Attention → Interest → Desire → Action |
-| **SAS** | PE/VC/IB | Star → Arch → Success |
-| **QVC** | Any senior role | Question → Value → CTA |
-| **PPPP** | Corporate strategy | Picture → Promise → Prove → Push |
-| **FFF** | Research / impact | Feel → Felt → Found |
-
-Tone varies by region: India (warm-direct), UK (measured), US (punchy), AU (casual-pro), SG/ME (precise), Remote (async-clear).
-
-Hard rules baked into every prompt:
-- ≤ 120 words body
-- ≤ 8 word subject (no "Quick question" or "Internship inquiry")
-- No generic openers — first line must reference something SPECIFIC about the target
-- One CTA only
-
----
-
-## Setup (one-time, ~15 minutes)
-
-### 1. Fork and clone
-```bash
-git clone https://github.com/YOUR_USERNAME/outbound-sniper.git
-cd outbound-sniper
-```
-
-### 2. Get your API keys (all free)
-
-**Serper** — [serper.dev](https://serper.dev) → Sign up → Dashboard → copy API Key
-
-**Gemini** — [aistudio.google.com](https://aistudio.google.com) → Get API Key → copy it
-
-**Gmail App Password:**
-1. Enable 2FA on your Google account
-2. `myaccount.google.com` → Security → App Passwords
-3. App: Mail → Device: Other → name it `OutboundBot`
-4. Copy the 16-char password (no spaces)
-
-**LinkedIn secondary account:**
-Create a fresh Gmail, then a new LinkedIn account. Takes 5 minutes. Use those credentials — not your main profile.
-
-### 3. Add GitHub Secrets
-`Settings → Secrets and variables → Actions → New repository secret`
-
-| Secret | Value |
+## Daily use
+| You want to… | Do this |
 |---|---|
-| `SERPER_API_KEY` | Your Serper key |
-| `LINKEDIN_USERNAME` | Secondary LinkedIn email |
-| `LINKEDIN_PASSWORD` | Secondary LinkedIn password |
-| `GEMINI_API_KEY` | Your Gemini key |
-| `SENDER_EMAIL` | `tanmay.kaper1401@gmail.com` |
-| `GMAIL_APP_PASSWORD` | 16-char App Password |
-| `OUTREACH_MODE` | `internship` (change to `job` for Phase 2) |
+| Add leads from an Apollo/LinkedIn export | Put the CSV in `inputs/` and push. It's ingested within minutes. |
+| See the pipeline | `state/pipeline_view.csv` (GitHub renders it as a table) or the `pipeline-<run>` xlsx artifact |
+| Review drafts before they go | `state/outbox.md`: dossier, sources, score, email + follow-ups for every approved lead |
+| Find leads that need a better email | `state/needs_enrichment.csv` |
+| Block someone | Add the email or `@domain` to `state/suppression.txt` |
+| Test without sending | Actions → Outbound Sniper → Run workflow → `dry_run: true` |
+| Go live | Repo **Settings → Secrets and variables → Actions → Variables** → `LIVE_SEND` = `true` |
+| Retry quarantined leads after adding a key | `python -m outreach requeue --state NEEDS_ENRICHMENT` |
 
-### 4. Enable Actions
-Repo → **Actions** tab → click **"I understand my workflows, go ahead and enable them"**
+## Setup
+1. **Secrets** (Settings → Secrets and variables → Actions). Run the workflow with `command: doctor` to see what's
+   wired. Values are never printed.
+   - Required for drafting: one of `ANTHROPIC_API_KEY` (recommended), `GROQ_API_KEY`, `GEMINI_API_KEY`
+   - Required for sending + reply detection: `SENDER_EMAIL`, `GMAIL_APP_PASSWORD` (IMAP must be enabled in Gmail)
+   - Recommended: `SERPER_API_KEY` (search + discovery), `HUNTER_API_KEY` (finder + verifier), one API verifier
+     (`MILLIONVERIFIER_API_KEY` / `ZEROBOUNCE_API_KEY` / `REOON_API_KEY` / `BOUNCER_API_KEY`)
+   - Optional finders: `FINDYMAIL_API_KEY`, `PROSPEO_API_KEY`, `LEADMAGIC_API_KEY`, `ANYMAILFINDER_KEY`, `APOLLO_API_KEY`
+2. **Variables** (optional): `LIVE_SEND`, `OUTREACH_MODE` (`internship`|`job`), `DAILY_SEND_CAP`, `WEEKLY_CAP`,
+   `MAX_PER_RUN`, `WEEKLY_TARGET`, `CATCH_ALL_MIN_CONFIDENCE`, `LLM_PROVIDER`, `LLM_FAST_MODEL`, `LLM_WRITER_MODEL`.
+3. Review `outreach/profile.py`: it holds the sender's resume-grounded proof points, the ask, and the ICP.
 
-First automated run: next Monday at 04:30 UTC.
-
----
-
-## Switching modes
-
-When you're ready to switch from internship to job search (Jan 2027):
-1. Go to `Settings → Secrets → Actions`
-2. Edit `OUTREACH_MODE` → change `internship` to `job`
-3. That's it — all subsequent emails will be framed around full-time graduate roles
-
-Or trigger a manual run with the override: `Actions → Outbound Sniper → Run workflow → outreach_mode: job`
-
----
-
-## Manual triggers
-
-`Actions → Outbound Sniper → Run workflow`
-
-| Option | Use case |
-|---|---|
-| `action: source` | Manually kick off a sourcing run |
-| `action: draft` | Draft emails for any un-drafted Pending rows (safe to re-run anytime) |
-| `action: dispatch` + `dry_run: true` | Test dispatch without sending — logs what would go |
-| `action: dispatch` + `force_window: true` | Send immediately regardless of timezone window |
-
----
-
-## Monitoring
-
-After each run, GitHub automatically updates:
-- `state/pipeline.csv` — full pipeline (source of truth)
-- `state/pipeline.xlsx` — formatted Excel for easy viewing
-- `state/dispatch_log.jsonl` — every send with timestamp, subject, recipient
-- `state/weekly_count.json` — weekly send counter
-
-View the pipeline: go to your repo → `state/pipeline.xlsx` → click **Download**
-
----
-
-## File structure
-```
-outbound-sniper/
-├── .github/
-│   └── workflows/
-│       └── outbound.yml          GitHub Actions scheduler (4 dispatch runs/week)
-├── modules/
-│   ├── config.py                 Mode toggle, cadence, personas, rotation schedule
-│   ├── module_a_sourcing.py      Serper + LinkedIn sourcing, scoring, dedup
-│   ├── module_b_spreadsheet.py   Additive CSV manager + Excel export
-│   ├── module_c_personalization.py  Gemini Pro drafting, 7 frameworks
-│   ├── module_d_dispatch.py      Timezone-aware Gmail SMTP dispatch
-│   └── orchestrator.py           Single Actions entry point
-├── state/
-│   ├── pipeline.csv              THE DATABASE — additive, never overwritten
-│   ├── pipeline.xlsx             Human-readable view, regenerated each run
-│   ├── dispatch_log.jsonl        Every send logged here
-│   └── weekly_count.json         Weekly cap tracker
-├── .env.example                  Copy to .env for local testing
-├── .gitignore
-├── requirements.txt
-└── README.md
-```
-
----
-
-## Local testing
+### Local
 ```bash
-pip install -r requirements.txt
-cp .env.example .env   # Fill in your real keys
+python3 -m venv .venv && .venv/bin/pip install -r requirements.txt -r requirements-dev.txt
+cp .env.example .env            # fill in what you have
+.venv/bin/python -m pytest
+.venv/bin/python -m outreach doctor
+.venv/bin/python -m outreach dryrun --out reports/dryrun.md   # sandboxed E2E, nothing sent, real state untouched
+.venv/bin/python -m outreach tick                             # real state, DRY_RUN=true by default
+```
 
-cd modules
+## Email verification, honestly
+SMTP mailbox probing needs outbound port 25, which is **blocked on GitHub-hosted runners** (and most home ISPs).
+So, without an API verifier:
+- Provider-verified emails (Apollo "Verified", Hunter "valid", Findymail…) pass after the syntax/role/MX checks.
+- Catch-all domains (e.g. McKinsey) pass only with provider proof, at confidence 75 (threshold 70).
+- **Pattern guesses are never sent**; they are quarantined to `needs_enrichment.csv`.
 
-# Test sourcing (writes to ../state/pipeline.csv)
-ACTION=source python orchestrator.py
+Adding one API verifier lets the waterfall confirm `first.last@domain`-style guesses, which is where most
+coverage gains come from.
 
-# Test drafting (fully independent — works any time)
-ACTION=draft python orchestrator.py
+## Copy rules (enforced by `outreach/drafting.py`)
+2–5 word lowercase subject · 65–110 word plain-text body · line 1 from a **verified** fact (or an honest
+company/role observation when `hook_confidence: low`) · one concrete proof point from the resume ·
+interest-based ask, no calendar link · no attachment or links in email 1 · follow-ups under 60 and 45 words, the
+last one with an easy out. Clichés ("I came across", "impressed", "aligns with", "eager", "delve" …), spam
+words and merge-tag leaks fail QA.
 
-# Test dispatch — dry run (logs but does NOT send)
-ACTION=dispatch DRY_RUN=true python orchestrator.py
+## Privacy
+This repo is **public**, and `state/` holds contact names, emails, dossiers and drafts. Consider making the
+repo private. That costs nothing: hourly ticks stay well inside the free Actions minutes for private repos.
 
-# Test dispatch — force window + dry run
-ACTION=dispatch DRY_RUN=true FORCE_WINDOW=true python orchestrator.py
-
-# Actually send
-ACTION=dispatch python orchestrator.py
+## Layout
+```
+outreach/            pipeline package (see CLAUDE.md)
+inputs/              CSV drop-in folder (processed/ = archive)
+state/leads.jsonl    source of truth, one lead per line (committed)
+state/events.jsonl   append-only audit log (sends, migrations, replies)
+state/legacy/        v1 files, migrated once and kept for reference
+tests/               pytest suite + fixtures/dryrun_sample.csv
+reports/             dry-run reports
+scripts/commit_state.sh   rebase-and-retry state commit used by the workflow
 ```
