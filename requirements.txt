@@ -1,21 +1,7 @@
-# Search (Serper.dev)
-requests==2.31.0
-
-# Email verification (MX lookup for the pattern-inference fallback tier)
-dnspython==2.6.1
-
-# Timezone-aware dispatch windows
-pytz==2024.1
-
-# state/pipeline.xlsx export
-openpyxl==3.1.2
-
-# .env loading for local runs
-python-dotenv==1.0.1
-
-# ── Optional: only needed if ENABLE_LINKEDIN_AUTOMATION=true ──
-# Unofficial/reverse-engineered LinkedIn client. Off by default — see
-# module_a_sourcing.py header and README "LinkedIn sourcing" section
-# before enabling. Uncomment only for a burner account you're prepared
-# to lose; do not point this at your primary LinkedIn login.
-# linkedin-api==2.3.1
+# Runtime (Python 3.11+)
+pydantic>=2.9,<3
+requests>=2.32,<3
+dnspython>=2.7,<3
+anthropic>=2.11,<3
+python-dotenv>=1.0,<2
+openpyxl>=3.1,<4
