@@ -1,0 +1,130 @@
+# Outbound Sniper v2 — one idempotent "tick" instead of six fragile crons.
+#
+# Why: GitHub drops and delays scheduled runs under load (W40–W47: only 10 of 18 v1 crons fired, most
+# 5–9 h late). Each tick reconciles from committed state and does whatever is due, so a dropped or late
+# run is simply caught up by the next one. Sending is gated per recipient-local window inside the code.
+#
+# SAFETY: sends are DRY RUN unless the repository *variable* LIVE_SEND is "true"
+#   (Settings → Secrets and variables → Actions → Variables). Manual runs can also choose dry_run.
+#
+# Secrets (all optional except where noted — `python -m outreach doctor` shows what's wired):
+#   LLM:        ANTHROPIC_API_KEY | GROQ_API_KEY | GEMINI_API_KEY        (one is required for drafting)
+#   Search:     SERPER_API_KEY, TAVILY_API_KEY                          (DuckDuckGo is the free fallback)
+#   Finders:    HUNTER_API_KEY, FINDYMAIL_API_KEY, PROSPEO_API_KEY, LEADMAGIC_API_KEY, ANYMAILFINDER_KEY, APOLLO_API_KEY
+#   Verifiers:  MILLIONVERIFIER_API_KEY, ZEROBOUNCE_API_KEY, REOON_API_KEY, BOUNCER_API_KEY
+#   Sending:    SENDER_EMAIL, GMAIL_APP_PASSWORD                         (required for live sends + reply detection)
+#   Tuning:     OUTREACH_MODE, WEEKLY_TARGET, DAILY_SEND_CAP, WEEKLY_CAP, MAX_PER_RUN, CATCH_ALL_MIN_CONFIDENCE
+
+name: Outbound Sniper
+
+on:
+  schedule:
+    # Hourly on weekdays at :23 — off the congested top of the hour. Covers India mornings (04:00 UTC)
+    # through US afternoons. Most ticks find nothing due and commit nothing.
+    - cron: "23 * * * 1-5"
+  push:
+    branches: [main]
+    paths: ["inputs/**.csv"]          # drop a CSV into inputs/ and push → ingested within minutes
+  workflow_dispatch:
+    inputs:
+      command:
+        description: "What to run"
+        type: choice
+        default: tick
+        options: [tick, doctor, export]
+      stages:
+        description: "Optional comma list (migrate,sync_replies,ingest,discover,verify,research,score,draft,send)"
+        required: false
+        default: ""
+      dry_run:
+        description: "Dry run (log what would be sent, send nothing)"
+        type: choice
+        default: "true"
+        options: ["true", "false"]
+      force_window:
+        description: "Ignore recipient-local send windows (manual runs only)"
+        type: choice
+        default: "false"
+        options: ["true", "false"]
+
+# One writer at a time. A queued run that gets superseded is harmless: the next tick catches up.
+concurrency:
+  group: outreach-state
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Install
+        run: pip install -r requirements.txt
+
+      - name: Run
+        id: run
+        env:
+          COMMAND: ${{ github.event.inputs.command || 'tick' }}
+          STAGES: ${{ github.event.inputs.stages || '' }}
+          # Manual runs decide via the input; scheduled/push runs are live only when vars.LIVE_SEND == 'true'.
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run || (vars.LIVE_SEND == 'true' && 'false' || 'true') }}
+          FORCE_WINDOW: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.force_window || 'false' }}
+          OUTREACH_MODE: ${{ vars.OUTREACH_MODE || secrets.OUTREACH_MODE || 'internship' }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          SERPER_API_KEY: ${{ secrets.SERPER_API_KEY }}
+          TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
+          HUNTER_API_KEY: ${{ secrets.HUNTER_API_KEY }}
+          FINDYMAIL_API_KEY: ${{ secrets.FINDYMAIL_API_KEY }}
+          PROSPEO_API_KEY: ${{ secrets.PROSPEO_API_KEY }}
+          LEADMAGIC_API_KEY: ${{ secrets.LEADMAGIC_API_KEY }}
+          ANYMAILFINDER_KEY: ${{ secrets.ANYMAILFINDER_KEY }}
+          APOLLO_API_KEY: ${{ secrets.APOLLO_API_KEY }}
+          MILLIONVERIFIER_API_KEY: ${{ secrets.MILLIONVERIFIER_API_KEY }}
+          ZEROBOUNCE_API_KEY: ${{ secrets.ZEROBOUNCE_API_KEY }}
+          REOON_API_KEY: ${{ secrets.REOON_API_KEY }}
+          BOUNCER_API_KEY: ${{ secrets.BOUNCER_API_KEY }}
+          SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          WEEKLY_TARGET: ${{ vars.WEEKLY_TARGET || secrets.WEEKLY_TARGET }}
+          DAILY_SEND_CAP: ${{ vars.DAILY_SEND_CAP }}
+          WEEKLY_CAP: ${{ vars.WEEKLY_CAP || secrets.WEEKLY_CAP }}
+          MAX_PER_RUN: ${{ vars.MAX_PER_RUN || secrets.MAX_PER_RUN }}
+          CATCH_ALL_MIN_CONFIDENCE: ${{ vars.CATCH_ALL_MIN_CONFIDENCE }}
+          LLM_PROVIDER: ${{ vars.LLM_PROVIDER }}
+          LLM_FAST_MODEL: ${{ vars.LLM_FAST_MODEL }}
+          LLM_WRITER_MODEL: ${{ vars.LLM_WRITER_MODEL }}
+        run: |
+          case "$COMMAND" in
+            tick)   python -m outreach tick ${STAGES:+--stages "$STAGES"} --xlsx reports/runs/pipeline.xlsx ;;
+            doctor) python -m outreach doctor ;;
+            export) python -m outreach export --xlsx reports/runs/pipeline.xlsx ;;
+          esac
+
+      # Runs even if the tick failed or was cancelled, so completed work (especially sends) is never lost.
+      - name: Commit state
+        if: always()
+        run: |
+          bash scripts/commit_state.sh "bot: ${{ github.event.inputs.command || 'tick' }} $(date -u +%Y-%m-%dT%H:%MZ)"
+
+      - name: Upload pipeline workbook
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: pipeline-${{ github.run_id }}
+          path: reports/runs/
+          if-no-files-found: ignore
+          retention-days: 14
