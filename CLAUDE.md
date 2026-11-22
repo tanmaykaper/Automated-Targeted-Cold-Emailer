@@ -29,10 +29,10 @@ python -m venv .venv && .venv/bin/pip install -r requirements.txt -r requirement
 | `enrich/domain.py` | Company → domain with name-ownership checks, aggregator/gov blocklist, MX requirement. |
 | `enrich/finders.py` | `BaseEmailFinder` waterfall: Hunter → Findymail → Prospeo → LeadMagic → AnymailFinder → Apollo match (each auto-enabled by its key). Pattern candidates only when a verifier can confirm them. |
 | `verify.py` | Gate: syntax → role/disposable → DNS/MX → SMTP probe (self-disables when port 25 is blocked) → API verifier → provider proof. Statuses `VERIFIED` / `CATCH_ALL`(+confidence) / `UNVERIFIED_QUARANTINED` / `INVALID`. |
-| `web.py` | Search (Serper → Tavily → DuckDuckGo Lite) + HTML-to-text fetch. |
-| `research.py` | Dossiers: gather sources, LLM-extract facts with verbatim evidence, **programmatically verify evidence against fetched text**, synthesize angles, compute `hook_confidence`. Deterministic fallback without an LLM. |
+| `web.py` | Search (Serper → Tavily → DuckDuckGo Lite, paced; trips on DDG's bot challenge — never bypass it) + HTML-to-text fetch. |
+| `research.py` | Dossiers: gather sources, split them into **numbered real sentences**, the LLM only *selects* sentence ids (it cannot invent evidence), paraphrases are checked for faithfulness, person attribution requires a source naming the person; `hook_confidence` is computed, not model-chosen. Deterministic fallback without an LLM. |
 | `scoring.py` | 0–100 rubric (title 30, company 25, deliverability 20, signal 15, hook 10) → Tier A ≥80 / B 60–79 / C disqualified. |
-| `llm.py` | Tiered routing: fast (extraction) vs writer (synthesis, drafting, critic). Anthropic SDK (`claude-haiku-5-5` / `claude-opus-5-5`, structured outputs, refusal fallback) → Groq → Gemini. |
+| `llm.py` | Two tiers (fast: extraction/synthesis · writer: drafting/critic), each an ordered **fallback chain** of (provider, model, key): Anthropic (`claude-haiku-5-5`/`claude-opus-5-5`, SDK structured outputs) → Groq → Gemini free-tier Flash models. A model that hits quota/overload is skipped for the rest of the run. `GEMINI_API_KEY` may hold several comma-separated keys (free quota is 20 req/day per model **per project**). |
 | `drafting.py` | Writer prompt, `lint()` (length, banned clichés, spam words, merge-tag leaks, links), LLM critic for factual alignment, one rewrite, else `NEEDS_REVIEW`. |
 | `mailer.py` | Gmail SMTP send, IMAP reply/bounce/opt-out detection, Sent-folder idempotency check, windows, follow-up schedule, suppression list. |
 | `pipeline.py` | Stage functions + per-lead isolation (`_each`) + `run()`; leads failing a stage 3× park in `NEEDS_REVIEW`. |

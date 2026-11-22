@@ -99,7 +99,9 @@ def summary_markdown(ctx: Context, report: RunReport, title: str = "Outreach tic
     errs: Counter = Counter()
     for st in report.stages.values():
         errs.update(st.errors)
-    http_errs = ctx.http.metrics.error_summary()
+    http_errs = Counter(ctx.http.metrics.error_summary())
+    if ctx.llm.http is not ctx.http:
+        http_errs.update(ctx.llm.http.metrics.error_summary())
     mode = "🧪 DRY RUN" if ctx.s.dry_run else "📤 LIVE"
     md = [f"## {title} — {mode} · mode `{ctx.s.outreach_mode}` · LLM: {ctx.llm.describe()}", "",
           "| Stage | Processed | Outcomes | Errors | Notes |", "|---|---|---|---|---|"]
@@ -113,8 +115,9 @@ def summary_markdown(ctx: Context, report: RunReport, title: str = "Outreach tic
            ""]
     if errs or http_errs:
         md.append("**Errors by category:** " + " · ".join(f"{k} {v}" for k, v in (errs + Counter(http_errs)).most_common()))
-    if ctx.http.metrics.breaker_reasons:
-        md.append("**Circuit breakers opened:** " + "; ".join(f"`{p}` {r}" for p, r in ctx.http.metrics.breaker_reasons.items()))
+    breakers = {**ctx.http.metrics.breaker_reasons, **ctx.llm.http.metrics.breaker_reasons}
+    if breakers:
+        md.append("**Circuit breakers opened:** " + "; ".join(f"`{p}` {r}" for p, r in breakers.items()))
     if ctx.verifier.smtp.disabled_reason:
         md.append(f"**SMTP probe:** {ctx.verifier.smtp.disabled_reason}")
     if report.would_send:
@@ -125,7 +128,8 @@ def summary_markdown(ctx: Context, report: RunReport, title: str = "Outreach tic
     if fails := report.systemic_failures():
         md += ["", "### ❌ Systemic failures", *[f"- {f}" for f in fails]]
     if ctx.llm.usage["input_tokens"]:
-        md.append(f"\nLLM usage: {ctx.llm.calls} calls, {ctx.llm.usage['input_tokens']} in / {ctx.llm.usage['output_tokens']} out tokens")
+        md.append(f"\nLLM usage: {ctx.llm.calls} calls ({ctx.llm.used_models()}), "
+                  f"{ctx.llm.usage['input_tokens']} in / {ctx.llm.usage['output_tokens']} out tokens")
     return "\n".join(md) + "\n"
 
 

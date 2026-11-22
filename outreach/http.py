@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import logging
 import random
+import re
 import time
 from collections import Counter, defaultdict
 from dataclasses import dataclass, field
@@ -119,9 +120,12 @@ class Http:
                         break
                 body = resp.text[:300].replace("\n", " ")
                 if status == 401 or (status == 403 and provider not in RATE_403):
-                    err = ProviderError(provider, "auth", f"HTTP {status}: {body}", status)
-                    self.metrics.errors[(provider, "auth")] += 1
-                    self.trip(provider, f"HTTP {status} (key invalid or plan lacks access)")
+                    is_site = provider.startswith("fetch:")
+                    cat = "blocked" if is_site else "auth"
+                    err = ProviderError(provider, cat, f"HTTP {status}: {body}", status)
+                    self.metrics.errors[(provider, cat)] += 1
+                    self.trip(provider, f"HTTP {status} (site refuses automated fetches)" if is_site
+                              else f"HTTP {status} (key invalid or plan lacks access)")
                     raise err
                 if status == 402 or (status == 429 and provider in QUOTA_429):
                     err = ProviderError(provider, "quota", f"HTTP {status}: {body}", status)
@@ -129,9 +133,22 @@ class Http:
                     self.trip(provider, f"HTTP {status} (quota/credits exhausted)")
                     raise err
                 if status in (429, 403):
-                    last = ProviderError(provider, "rate_limit", f"HTTP {status}", status)
+                    last = ProviderError(provider, "rate_limit", f"HTTP {status}: {body[:120]}", status)
                     if attempt < self.max_retries:
-                        self._sleep(self._backoff(attempt, resp.headers.get("Retry-After")))
+                        # Retry-After header, or Google-style RetryInfo {"retryDelay": "34s"} in the body
+                        hint = resp.headers.get("Retry-After")
+                        if not hint and (m := re.search(r'"retryDelay":\s*"(\d+(?:\.\d+)?)s"', resp.text)):
+                            hint = m.group(1)
+                        try:
+                            long_wait = float(hint or 0) > 120 or "PerDay" in resp.text
+                        except ValueError:
+                            long_wait = False
+                        if long_wait:  # daily quota exhausted: waiting won't help this run
+                            err = ProviderError(provider, "quota", f"HTTP {status} daily quota exhausted", status)
+                            self.metrics.errors[(provider, "quota")] += 1
+                            self.trip(provider, "daily quota exhausted")
+                            raise err
+                        self._sleep(self._backoff(attempt, hint))
                         continue
                     break
                 if status >= 500:

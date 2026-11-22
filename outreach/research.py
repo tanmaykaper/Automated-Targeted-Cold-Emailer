@@ -49,18 +49,17 @@ class Source:
     origin: str  # site | news | person | signal
 
 
-class _XFact(BaseModel):
-    claim: str = Field(description="One specific, concrete fact, paraphrased in plain English")
+class _Pick(BaseModel):
+    sentence_id: str = Field(description="Id of the chosen sentence, e.g. S2.3")
     about: Literal["company", "person", "industry"]
     kind: Literal["business", "news", "funding", "hiring", "launch", "expansion", "initiative",
                   "talk", "article", "podcast", "post", "role", "other"]
-    source_id: str = Field(description="e.g. S3")
-    evidence: str = Field(description="Exact verbatim quote (8-40 words) copied from that source")
-    date: str = Field(default="", description="Date if the source states one, else empty")
+    claim: str = Field(description="<= 25 words restating ONLY what that sentence says")
+    date: str = Field(default="", description="Date if the sentence or source states one, else empty")
 
 
-class _Extraction(BaseModel):
-    facts: list[_XFact]
+class _Picks(BaseModel):
+    picks: list[_Pick]
 
 
 class _XAngle(BaseModel):
@@ -75,13 +74,14 @@ class _Synthesis(BaseModel):
     angles: list[_XAngle]
 
 
-EXTRACT_SYSTEM = """You extract verifiable facts for B2B outreach research. Rules:
-- Use ONLY the numbered sources provided. Never use outside knowledge.
-- Every fact needs `evidence`: an exact, contiguous, verbatim quote copied character-for-character from the cited source.
-- Prefer specific, recent, outreach-relevant facts: launches, funding, hiring, expansion, new practices/initiatives,
-  published research, talks, podcasts, articles or posts by the person. Skip boilerplate marketing claims.
-- A fact is about the person ONLY if the source explicitly names them. Do not attribute company news to the person.
-- Do not infer achievements. If sources are thin, return fewer facts (zero is fine)."""
+EXTRACT_SYSTEM = """You select facts for B2B outreach research from numbered sentences.
+Each sentence has an id like S2.3 (source 2, sentence 3). Pick the 3-8 sentences most useful for writing a specific,
+relevant first line of a cold email to the prospect: launches, funding, hiring, expansion, new practices or initiatives,
+research or reports, talks, podcasts, articles or posts BY the prospect, and concrete descriptions of what the company does.
+Skip navigation text, cookie banners, generic slogans and contact details.
+For each pick: about = "person" only if the sentence or its source is explicitly by/about the prospect; claim = a short
+restatement of ONLY what that sentence says (no outside knowledge, no embellishment).
+If nothing is useful, return an empty list."""
 
 SYNTH_SYSTEM = """You are a sharp research analyst preparing a cold-outreach brief for a student job-seeker.
 Use only the verified facts given (cite their ids). Never invent achievements, posts, talks, or news.
@@ -153,9 +153,9 @@ class Researcher:
         company = lead.company.name
         name = lead.person.display_name()
         plan: list[tuple[str, str, bool]] = [
-            (f'"{company}" announces OR launches OR raises OR expands OR hiring', "signal", False),
+            (f'"{company}" launches OR announces OR expands', "signal", False),
             (f'"{name}" "{company}"', "person", False),
-            (f'"{name}" podcast OR interview OR panel OR keynote OR article', "person", False),
+            (f'"{name}" interview OR podcast OR article OR report', "person", False),
         ]
         if self.search.s.keys.serper:
             plan.insert(0, (f'"{company}"', "news", True))
@@ -184,26 +184,67 @@ class Researcher:
         return bool(core) and core[0] in t
 
     # ── 2-3. extraction + verification ──────────────────────────────────────
+    @staticmethod
+    def sentences(src: Source, limit: int = 18) -> list[tuple[str, str]]:
+        body = src.text
+        if src.origin != "site" and body.startswith(src.title):
+            body = body[len(src.title):].lstrip(". ")
+        parts = re.split(r"(?<=[.!?])\s+|\n+", body)
+        out, n = [], 0
+        if src.origin != "site" and len(src.title) >= 20:
+            out.append((f"{src.id}.0", src.title.strip()))  # titles of articles/reports are often the best hook
+        for p in parts:
+            p = re.sub(r"\s+", " ", p).strip(" -|·")
+            if 25 <= len(p) <= 400 and not re.search(r"cookie|subscribe|sign in|log in|©|all rights reserved", p, re.I):
+                n += 1
+                out.append((f"{src.id}.{n}", p))
+            if n >= limit:
+                break
+        return out
+
+    @staticmethod
+    def _faithful(claim: str, evidence: str) -> bool:
+        """The paraphrase may not add content words the sentence doesn't contain."""
+        stop = {"the", "a", "an", "and", "or", "of", "to", "in", "on", "for", "with", "at", "by", "is", "are", "was",
+                "its", "their", "his", "her", "has", "have", "that", "this", "as", "from", "it", "be", "which", "who"}
+        cw = [w for w in re.findall(r"[a-z0-9%]+", claim.lower()) if w not in stop and len(w) > 2]
+        ev = set(re.findall(r"[a-z0-9%]+", evidence.lower()))
+        if not cw:
+            return False
+        hits = sum(1 for w in cw if w in ev or any(e.startswith(w[:5]) for e in ev if len(w) >= 5))
+        return hits / len(cw) >= 0.6
+
     def extract(self, lead: Lead, sources: list[Source]) -> tuple[list[Fact], str]:
-        by_id = {s.id: s for s in sources}
         if not sources:
             return [], ""
         if self.llm.available:
-            listing = "\n\n".join(f"[{s.id}] ({s.origin}) {s.url}\nTITLE: {s.title}\n{s.text[:3000]}" for s in sources)
+            index: dict[str, tuple[str, Source]] = {}
+            blocks = []
+            for src in sources:
+                sents = self.sentences(src)
+                if not sents:
+                    continue
+                for sid, text in sents:
+                    index[sid] = (text, src)
+                blocks.append(f"[{src.id}] ({src.origin}) {src.url}\n" + "\n".join(f"{sid}: {t}" for sid, t in sents))
             prompt = (f"Prospect: {lead.person.display_name()} — {lead.person.title} at {lead.company.name}\n\n"
-                      f"SOURCES:\n{listing}\n\nExtract up to 10 facts.")
+                      "SENTENCES:\n" + "\n\n".join(blocks))
             try:
-                out = self.llm.structured("fast", EXTRACT_SYSTEM, prompt, _Extraction, max_tokens=3000)
-                facts = []
-                for i, xf in enumerate(out.facts, 1):
-                    src = by_id.get(xf.source_id.strip().strip("[]"))
-                    if not src:
+                out = self.llm.structured("fast", EXTRACT_SYSTEM, prompt, _Picks, max_tokens=2500)
+                facts, seen = [], set()
+                for pick in out.picks[:10]:
+                    sid = pick.sentence_id.strip().strip("[]")
+                    if sid not in index or sid in seen:
                         continue
-                    ok = evidence_in_source(xf.evidence, src.title + " " + src.text)
-                    if ok and xf.about == "person" and not _mentions_person(lead, src.title + " " + src.text):
-                        ok = False
-                    facts.append(Fact(id=f"F{i}", claim=xf.claim, about=xf.about, kind=xf.kind, source_url=src.url,
-                                      evidence=xf.evidence[:400], date=xf.date, verified=ok))
+                    seen.add(sid)
+                    evidence, src = index[sid]
+                    ok = self._faithful(pick.claim, evidence)
+                    about = pick.about
+                    if about == "person" and not _mentions_person(lead, src.title + " " + src.text):
+                        about = "company"  # never attribute to the person without a source naming them
+                    facts.append(Fact(id=f"F{len(facts) + 1}", claim=pick.claim if ok else evidence, about=about,
+                                      kind=pick.kind, source_url=src.url, evidence=evidence, date=pick.date,
+                                      verified=True))
                 return facts, self.llm.model("fast")
             except LLMError as e:
                 log.info("fact extraction via LLM failed (%s); using deterministic extractor", e.category)
@@ -263,7 +304,7 @@ class Researcher:
                       "\n".join(f"- {p.key}: {p.text}" for p in SENDER.proof_points) +
                       f"\n\nValid proof_point keys: {proof_keys}")
             try:
-                out = self.llm.structured("writer", SYNTH_SYSTEM, prompt, _Synthesis, max_tokens=2000, effort="medium")
+                out = self.llm.structured("fast", SYNTH_SYSTEM, prompt, _Synthesis, max_tokens=2000)
                 valid_ids = {f.id for f in verified}
                 keys = {p.key for p in SENDER.proof_points}
                 angles = [OutreachAngle(angle=a.angle, fact_ids=[i for i in a.fact_ids if i in valid_ids],

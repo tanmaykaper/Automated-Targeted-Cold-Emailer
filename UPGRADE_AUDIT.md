@@ -123,7 +123,8 @@ Root causes:
    403s, which matches what the stub comment describes. The manual CSV export is therefore the right
    Apollo path for this user. It was already the cleanest data source (100 verified rows).
 6. **Pipeline dedup is by email only.** The same person with a different guessed address is a "new"
-   lead, and there is no canonical person ID.
+   lead, and there is no canonical person ID. Measured: **20 people were emailed twice** (same LinkedIn
+   profile, two different guessed addresses, e.g. `@privateequityinternational.com` and `@rocketreach.co`).
 7. **Apollo import re-processes `done/`** on every run (by design, for "refresh"). Duplicate
    exports `(1)`/`(0)` and `(3)`/`(4)` are byte-identical.
 

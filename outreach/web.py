@@ -7,7 +7,9 @@ from __future__ import annotations
 
 import html
 import logging
+import random
 import re
+import time
 from dataclasses import dataclass
 from html.parser import HTMLParser
 from urllib.parse import parse_qs, unquote, urlparse
@@ -38,6 +40,7 @@ class Search:
         self.s = settings
         self.used = 0
         self.cache: dict[tuple, list[SearchResult]] = {}
+        self._ddg_last = 0.0
 
     @property
     def providers(self) -> list[str]:
@@ -87,9 +90,19 @@ class Search:
                              date=i.get("published_date", ""), provider="tavily")
                 for i in data.get("results", []) if i.get("url")]
 
+    DDG_MIN_INTERVAL_S = 4.0
+
     def _duckduckgo(self, q: str, num: int, news: bool) -> list[SearchResult]:
+        # Free fallback: be polite (paced queries) and stop for the run as soon as DDG shows its bot challenge.
+        wait = self._ddg_last + self.DDG_MIN_INTERVAL_S + random.uniform(0, 2) - time.time()
+        if wait > 0:
+            time.sleep(wait)
         resp = self.http.request("POST", "https://lite.duckduckgo.com/lite/", provider="duckduckgo",
                                  data={"q": q, "kl": "wt-wt"}, expect_json=False, timeout=(6, 15))
+        self._ddg_last = time.time()
+        if "anomaly" in resp.text[:20000].lower() and "result-link" not in resp.text:
+            self.http.trip("duckduckgo", "bot challenge served — paused for this run (add SERPER_API_KEY for reliable search)")
+            raise ProviderError("duckduckgo", "rate_limit", "DuckDuckGo bot challenge")
         return parse_ddg_lite(resp.text)[:num]
 
 

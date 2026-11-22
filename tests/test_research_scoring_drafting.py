@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import pytest
-from fakes import GOOD_BODY, FakeLLM, xfact
+from fakes import GOOD_BODY, FakeLLM, pick
 
 from outreach.drafting import Drafter, lint
 from outreach.http import Http
@@ -33,29 +33,34 @@ def test_evidence_matching():
     assert not evidence_in_source("AI", src)  # too short to count as evidence
 
 
-def test_hallucinated_facts_are_dropped():
+def test_extraction_can_only_cite_real_sentences():
     l = lead()
     sources = [Source("S1", "https://praxisga.com/", "Praxis", "Praxis is a consulting and transformation firm in India.", "site"),
-               Source("S2", "https://news.example/a", "News", "Madhur Singhal spoke on a panel about Indian consumer markets.", "person")]
+               Source("S2", "https://news.example/a", "Panel on consumer India",
+                      "Panel on consumer India. Madhur Singhal spoke on a panel about Indian consumer markets.", "person")]
     llm = FakeLLM(facts=[
-        xfact("Consulting firm", "S1", "Praxis is a consulting and transformation firm in India", kind="business"),
-        xfact("Raised $50M", "S1", "Praxis raised $50M from Sequoia", kind="funding"),             # not in source
-        xfact("Spoke on a panel", "S2", "Madhur Singhal spoke on a panel about Indian consumer markets", about="person", kind="talk"),
-        xfact("Wrote a book", "S9", "Madhur wrote a book", about="person", kind="article"),          # unknown source
+        pick("S1.1", "Praxis is a consulting and transformation firm in India", kind="business"),
+        pick("S1.1", "duplicate pick", kind="business"),                                  # duplicate → ignored
+        pick("S1.9", "Raised $50M from Sequoia", kind="funding"),                          # no such sentence → dropped
+        pick("S2.1", "Madhur Singhal spoke on a panel about Indian consumer markets", about="person", kind="talk"),
+        pick("S2.0", "Madhur won a national award for leadership", about="person", kind="article"),  # unfaithful claim
     ])
     r = Researcher(Http(), Http(), FakeSearch(), llm, "internship")
     facts, _ = r.extract(l, sources)
-    assert [f.verified for f in facts] == [True, False, True]
-    hook, _ = r.hook_confidence(facts)
-    assert hook == "high"
+    assert [f.evidence for f in facts] == ["Praxis is a consulting and transformation firm in India.",
+                                           "Madhur Singhal spoke on a panel about Indian consumer markets.",
+                                           "Panel on consumer India"]
+    assert all(f.verified for f in facts)
+    assert facts[2].claim == "Panel on consumer India"  # unfaithful paraphrase replaced by the real sentence
+    assert r.hook_confidence(facts)[0] == "high"
 
 
-def test_person_fact_requires_named_source():
+def test_person_attribution_requires_named_source():
     l = lead()
     sources = [Source("S1", "https://praxisga.com/", "Praxis", "The CEO spoke at a panel on retail growth in Mumbai last week.", "site")]
-    llm = FakeLLM(facts=[xfact("CEO spoke at a panel", "S1", "The CEO spoke at a panel on retail growth in Mumbai", about="person", kind="talk")])
+    llm = FakeLLM(facts=[pick("S1.1", "The CEO spoke at a panel on retail growth in Mumbai", about="person", kind="talk")])
     facts, _ = Researcher(Http(), Http(), FakeSearch(), llm, "internship").extract(l, sources)
-    assert facts[0].verified is False
+    assert facts[0].about == "company"
 
 
 def test_dossier_fallback_when_no_public_hook(monkeypatch):

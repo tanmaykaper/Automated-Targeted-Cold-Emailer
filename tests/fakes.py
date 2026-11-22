@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from outreach.drafting import _Critique, _Draft
-from outreach.research import _Extraction, _Synthesis, _XAngle, _XFact
+from outreach.research import _Pick, _Picks, _Synthesis, _XAngle
 
 GOOD_BODY = ("Hi Madhur,\n\nPraxis describes itself as a consulting and transformation firm working across strategy, "
              "digital and AI, and operational excellence for Indian businesses.\n\nAt KPMG I built an automated Python ETL "
@@ -39,8 +39,8 @@ class FakeLLM:
         if schema.__name__ in self.raise_on:
             from outreach.llm import LLMError
             raise LLMError("server_error", "boom")
-        if schema is _Extraction:
-            return _Extraction(facts=self.facts if self.facts is not None else [])
+        if schema is _Picks:
+            return _Picks(picks=self.facts if self.facts is not None else [])
         if schema is _Synthesis:
             return _Synthesis(company_summary="Consulting firm.", role_scope="Likely runs the firm.",
                               angles=[_XAngle(angle="Data-heavy consulting work.", fact_ids=["F1"], proof_point="kpmg_sony_etl")])
@@ -58,5 +58,5 @@ class FakeLLM:
         raise AssertionError(f"unexpected schema {schema}")
 
 
-def xfact(claim, source_id, evidence, about="company", kind="news"):
-    return _XFact(claim=claim, about=about, kind=kind, source_id=source_id, evidence=evidence)
+def pick(sentence_id, claim, about="company", kind="news"):
+    return _Pick(sentence_id=sentence_id, claim=claim, about=about, kind=kind)

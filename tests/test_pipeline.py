@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 from conftest import FakeSearch, apollo_csv
-from fakes import FakeLLM, xfact
+from fakes import FakeLLM, pick
 
 from outreach import pipeline as P
 from outreach.http import Http, ProviderError
@@ -30,8 +30,7 @@ def ctx(settings, monkeypatch):
     c = P.Context(settings, http=Http(sleep=lambda s: None), sleep=lambda s: None)
     c.search = FakeSearch()
     c.researcher.search = c.search
-    c.llm = FakeLLM(facts=[xfact("Consulting and transformation firm", "S1",
-                                 "Praxis describes itself as a consulting and transformation firm", kind="business")])
+    c.llm = FakeLLM(facts=[pick("S1.1", "Praxis describes itself as a consulting and transformation firm", kind="business")])
     c.researcher.llm = c.llm
     c.drafter.llm = c.llm
     monkeypatch.setattr(c.verifier.dns, "mx", lambda d: ("ok", ["mx." + d]))

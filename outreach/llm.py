@@ -1,14 +1,19 @@
-"""Tiered LLM routing.
+"""Tiered LLM routing with per-model fallback chains.
 
-Two tiers, each mapped to whichever provider has a key (or LLM_PROVIDER forces one):
-  fast    → structured extraction, classification, page parsing
-  writer  → dossier synthesis, cold-email drafting, the QA critic
+Two tiers:
+  fast    → structured fact extraction, angle synthesis
+  writer  → cold-email drafting and the QA critic
 
-Provider defaults:
-  anthropic  fast=claude-haiku-5-5   writer=claude-opus-5-5   (official SDK, structured outputs)
-  groq       fast=openai/gpt-oss-20b writer=openai/gpt-oss-120b (OpenAI-compatible REST, JSON mode)
-  gemini     fast=gemini-2.5-flash   writer=gemini-2.5-pro    (REST, JSON mode)
-Override with LLM_FAST_MODEL / LLM_WRITER_MODEL.
+Each tier is an ordered chain of (provider, model). Only providers with a key are used. When a
+model is out of quota (e.g. Gemini free tier: 20 requests/day *per model*), rate-limited past its
+retries, overloaded or failing, the call moves to the next model in the chain, and that model is
+skipped for the rest of the run.
+
+  fast:   claude-haiku-5-5 → groq gpt-oss-20b → gemini-3.1-flash-lite → gemini-flash-lite-latest → gemini-3.5-flash-lite
+  writer: claude-opus-5-5 → gemini-3.6-flash → gemini-3.5-flash → gemini-3-flash-preview → gemini-3.7-flash
+          → groq gpt-oss-120b
+
+LLM_PROVIDER restricts both chains to one provider; LLM_FAST_MODEL / LLM_WRITER_MODEL put a model first.
 """
 from __future__ import annotations
 
@@ -27,11 +32,15 @@ log = logging.getLogger(__name__)
 Tier = Literal["fast", "writer"]
 T = TypeVar("T", bound=BaseModel)
 
-DEFAULT_MODELS = {
-    "anthropic": {"fast": "claude-haiku-5-5", "writer": "claude-opus-5-5"},
-    "groq": {"fast": "openai/gpt-oss-20b", "writer": "openai/gpt-oss-120b"},
-    "gemini": {"fast": "gemini-2.5-flash", "writer": "gemini-2.5-pro"},
+# Gemini free-tier availability verified 2026-11-22: Pro models have 0 free quota, 2.5-* is closed to new users.
+CHAINS: dict[str, list[tuple[str, str]]] = {
+    "fast": [("anthropic", "claude-haiku-5-5"), ("groq", "openai/gpt-oss-20b"), ("gemini", "gemini-3.1-flash-lite"),
+             ("gemini", "gemini-flash-lite-latest"), ("gemini", "gemini-3.5-flash-lite")],
+    "writer": [("anthropic", "claude-opus-5-5"), ("gemini", "gemini-3.6-flash"), ("gemini", "gemini-3.5-flash"),
+               ("gemini", "gemini-3-flash-preview"), ("gemini", "gemini-3.7-flash"), ("groq", "openai/gpt-oss-120b")],
 }
+NEXT_MODEL_ON = {"quota", "rate_limit", "circuit_open", "server_error", "timeout", "network", "auth", "parse",
+                 "truncated", "refusal", "unavailable"}
 
 
 class LLMError(Exception):
@@ -40,53 +49,109 @@ class LLMError(Exception):
         self.category = category
 
 
+def _provider_of(model: str) -> str:
+    if model.startswith("claude-"):
+        return "anthropic"
+    if model.startswith("gemini-"):
+        return "gemini"
+    return "groq"
+
+
 class LLM:
     def __init__(self, http: Http, settings: Settings):
         self.http = http
         self.s = settings
-        self.provider = self._pick_provider()
         self.calls = 0
         self.usage = {"input_tokens": 0, "output_tokens": 0}
+        self.model_calls: dict[str, int] = {}
+        self.exhausted: dict[str, str] = {}
         self._anthropic = None
+        self.chains = {tier: self._chain(tier) for tier in ("fast", "writer")}
 
-    def _pick_provider(self) -> str:
-        keys = self.s.keys
-        avail = [p for p, k in (("anthropic", keys.anthropic), ("groq", keys.groq), ("gemini", keys.gemini)) if k]
+    def _has_key(self, provider: str) -> bool:
+        return bool(getattr(self.s.keys, provider, ""))
+
+    def _keys(self, provider: str) -> list[str]:
+        """GEMINI_API_KEY may hold several comma-separated keys (one per Google Cloud project):
+        free-tier quota is per project per model, so each key multiplies the daily budget."""
+        return [k.strip() for k in getattr(self.s.keys, provider, "").split(",") if k.strip()]
+
+    def _chain(self, tier: Tier) -> list[tuple[str, str]]:
+        chain = list(CHAINS[tier])
+        override = self.s.llm_fast_model if tier == "fast" else self.s.llm_writer_model
+        if override:
+            chain = [(_provider_of(override), override)] + [c for c in chain if c[1] != override]
         if self.s.llm_provider != "auto":
-            if self.s.llm_provider in avail:
-                return self.s.llm_provider
-            log.warning("LLM_PROVIDER=%s has no key; falling back to auto", self.s.llm_provider)
-        return avail[0] if avail else ""
+            forced = [c for c in chain if c[0] == self.s.llm_provider]
+            if forced and self._has_key(self.s.llm_provider):
+                chain = forced
+            else:
+                log.warning("LLM_PROVIDER=%s has no key; using all configured providers", self.s.llm_provider)
+        out = []
+        for provider, model in chain:
+            for i, _ in enumerate(self._keys(provider) if provider == "gemini" else [getattr(self.s.keys, provider, "")]):
+                if _:
+                    out.append((provider, model, i))
+        # Model-major order: the best model is tried on every key before falling back to a weaker model
+        return out
+
+
+    def _live(self, tier: Tier) -> list[tuple[str, str, int]]:
+        return [c for c in self.chains[tier] if f"{c[0]}:{c[1]}#{c[2]}" not in self.exhausted]
 
     @property
     def available(self) -> bool:
-        return bool(self.provider) and self.http.available(f"llm:{self.provider}")
+        return bool(self._live("fast") and self._live("writer"))
+
+    @property
+    def provider(self) -> str:
+        live = self._live("writer") or self.chains["writer"]
+        return live[0][0] if live else ""
 
     def model(self, tier: Tier) -> str:
-        override = self.s.llm_fast_model if tier == "fast" else self.s.llm_writer_model
-        return override or DEFAULT_MODELS.get(self.provider, {}).get(tier, "")
+        live = self._live(tier) or self.chains[tier]
+        return live[0][1] if live else ""
+
+    def used_models(self) -> str:
+        return ", ".join(f"{m}×{n}" for m, n in self.model_calls.items())
 
     def describe(self) -> str:
-        if not self.provider:
+        if not self.chains["writer"]:
             return "none (no ANTHROPIC_API_KEY / GROQ_API_KEY / GEMINI_API_KEY)"
-        return f"{self.provider} (fast={self.model('fast')}, writer={self.model('writer')})"
+        fmt = lambda t: " → ".join(dict.fromkeys(m for _, m, _i in self.chains[t]))  # noqa: E731
+        nkeys = len(self._keys("gemini"))
+        extra = f" (×{nkeys} Gemini keys)" if nkeys > 1 else ""
+        return f"fast: {fmt('fast')} | writer: {fmt('writer')}{extra}"
 
     # ── public API ──────────────────────────────────────────────────────────
     def structured(self, tier: Tier, system: str, prompt: str, schema: type[T], max_tokens: int = 4000,
                    effort: str = "medium") -> T:
-        if not self.available:
-            raise LLMError("unavailable", "no LLM provider configured")
-        self.calls += 1
-        if self.provider == "anthropic":
-            return self._anthropic_structured(tier, system, prompt, schema, max_tokens, effort)
-        raw = self._json_mode(tier, system, prompt, schema, max_tokens)
+        last: LLMError | None = None
+        for provider, model, ki in self._live(tier):
+            self.calls += 1
+            self.model_calls[model] = self.model_calls.get(model, 0) + 1
+            try:
+                if provider == "anthropic":
+                    return self._anthropic_structured(model, tier, system, prompt, schema, max_tokens, effort)
+                return self._validated(provider, model, ki, system, prompt, schema, max_tokens)
+            except LLMError as e:
+                last = e
+                if e.category not in NEXT_MODEL_ON:
+                    raise
+                if e.category not in ("parse", "truncated", "refusal"):
+                    # quota / auth / overloaded (5xx) / timeouts: skip this model for the rest of the run
+                    self.exhausted[f"{provider}:{model}#{ki}"] = e.category
+                log.warning("%s/%s failed (%s); trying next model in the %s chain", provider, model, e.category, tier)
+        raise last or LLMError("unavailable", "no LLM provider configured")
+
+    def _validated(self, provider, model, ki, system, prompt, schema, max_tokens):
+        raw = self._json_mode(provider, model, ki, system, prompt, schema, max_tokens)
         try:
             return schema.model_validate(raw)
         except ValidationError as e:
-            # one repair round-trip with the validation error
             fix = (f"{prompt}\n\nYour previous JSON failed validation:\n{str(e)[:1200]}\n"
                    f"Previous output:\n{json.dumps(raw)[:3000]}\nReturn corrected JSON only.")
-            raw = self._json_mode(tier, system, fix, schema, max_tokens)
+            raw = self._json_mode(provider, model, ki, system, fix, schema, max_tokens)
             try:
                 return schema.model_validate(raw)
             except ValidationError as e2:
@@ -99,9 +164,8 @@ class LLM:
             self._anthropic = anthropic.Anthropic(api_key=self.s.keys.anthropic, max_retries=3, timeout=180.0)
         return self._anthropic
 
-    def _anthropic_structured(self, tier, system, prompt, schema, max_tokens, effort):
+    def _anthropic_structured(self, model, tier, system, prompt, schema, max_tokens, effort):
         import anthropic
-        model = self.model(tier)
         kwargs = dict(model=model, max_tokens=max_tokens, system=system,
                       messages=[{"role": "user", "content": prompt}], output_format=schema,
                       output_config={"effort": "low" if tier == "fast" else effort})
@@ -113,10 +177,8 @@ class LLM:
             else:
                 resp = self._client().messages.parse(**kwargs)
         except anthropic.AuthenticationError as e:
-            self.http.trip("llm:anthropic", "authentication failed")
             raise LLMError("auth", str(e)[:200])
         except anthropic.PermissionDeniedError as e:
-            self.http.trip("llm:anthropic", "permission denied")
             raise LLMError("auth", str(e)[:200])
         except anthropic.RateLimitError as e:
             raise LLMError("rate_limit", str(e)[:200])
@@ -140,31 +202,40 @@ class LLM:
         return parsed
 
     # ── JSON-mode REST providers ────────────────────────────────────────────
-    def _json_mode(self, tier, system, prompt, schema, max_tokens) -> dict:
+    def _json_mode(self, provider, model, ki, system, prompt, schema, max_tokens) -> dict:
         schema_txt = json.dumps(schema.model_json_schema())[:6000]
         sys = f"{system}\n\nReturn ONLY one JSON object matching this JSON Schema:\n{schema_txt}"
+        pid = f"llm:{provider}:{model}#{ki}"
         try:
-            if self.provider == "groq":
+            if provider == "groq":
                 data = self.http.request(
-                    "POST", "https://api.groq.com/openai/v1/chat/completions", provider="llm:groq",
-                    headers={"Authorization": f"Bearer {self.s.keys.groq}"}, timeout=(8, 120),
-                    json={"model": self.model(tier), "max_completion_tokens": max_tokens,
+                    "POST", "https://api.groq.com/openai/v1/chat/completions", provider=pid,
+                    headers={"Authorization": f"Bearer {self.s.keys.groq}"}, timeout=(8, 90),
+                    json={"model": model, "max_completion_tokens": max_tokens * 2,
                           "response_format": {"type": "json_object"},
                           "messages": [{"role": "system", "content": sys}, {"role": "user", "content": prompt}]})
                 u = data.get("usage") or {}
                 self.usage["input_tokens"] += u.get("prompt_tokens", 0)
                 self.usage["output_tokens"] += u.get("completion_tokens", 0)
                 text = data["choices"][0]["message"]["content"]
-            elif self.provider == "gemini":
+            elif provider == "gemini":
                 data = self.http.request(
-                    "POST", f"https://generativelanguage.googleapis.com/v1beta/models/{self.model(tier)}:generateContent",
-                    provider="llm:gemini", headers={"x-goog-api-key": self.s.keys.gemini}, timeout=(8, 120),
+                    "POST", f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent",
+                    provider=pid, headers={"x-goog-api-key": self._keys("gemini")[ki]}, timeout=(8, 90),
                     json={"systemInstruction": {"parts": [{"text": sys}]},
                           "contents": [{"role": "user", "parts": [{"text": prompt}]}],
-                          "generationConfig": {"responseMimeType": "application/json", "maxOutputTokens": max_tokens}})
-                text = data["candidates"][0]["content"]["parts"][0]["text"]
+                          # thinking tokens count toward the output budget on Gemini 3.x — leave headroom
+                          "generationConfig": {"responseMimeType": "application/json",
+                                               "maxOutputTokens": max(max_tokens * 3, 8192)}})
+                cand = data["candidates"][0]
+                if cand.get("finishReason") == "MAX_TOKENS":
+                    raise LLMError("truncated", "hit maxOutputTokens")
+                u = data.get("usageMetadata") or {}
+                self.usage["input_tokens"] += u.get("promptTokenCount", 0)
+                self.usage["output_tokens"] += u.get("candidatesTokenCount", 0)
+                text = "".join(p.get("text", "") for p in cand["content"]["parts"] if not p.get("thought"))
             else:
-                raise LLMError("unavailable", f"unknown provider {self.provider}")
+                raise LLMError("unavailable", f"unknown provider {provider}")
         except ProviderError as e:
             raise LLMError(e.category, str(e))
         except (KeyError, IndexError, TypeError) as e:

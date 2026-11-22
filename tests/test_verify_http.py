@@ -145,3 +145,47 @@ def test_hunter_429_means_quota():
     with pytest.raises(ProviderError) as e:
         h.request("GET", "https://api.hunter.io/v2/email-finder", provider="hunter")
     assert e.value.category == "quota" and not h.available("hunter")
+
+
+@responses.activate
+def test_google_retry_delay_in_body_is_respected():
+    slept = []
+    responses.post("https://api.test/g", status=429,
+                   json={"error": {"details": [{"@type": "type.googleapis.com/google.rpc.RetryInfo", "retryDelay": "12s"}]}})
+    responses.post("https://api.test/g", json={"ok": 1})
+    Http(sleep=slept.append).request("POST", "https://api.test/g", provider="llm:gemini")
+    assert slept == [12.0]
+
+
+@responses.activate
+def test_site_403_is_blocked_not_auth():
+    responses.get("https://site.test/", status=403)
+    h = Http(sleep=lambda s: None)
+    with pytest.raises(ProviderError) as e:
+        h.request("GET", "https://site.test/", provider="fetch:site.test", expect_json=False)
+    assert e.value.category == "blocked" and not h.available("fetch:site.test")
+
+
+@responses.activate
+def test_llm_falls_back_through_model_chain(settings):
+    from pydantic import BaseModel
+
+    from outreach.llm import LLM
+
+    class Out(BaseModel):
+        ok: bool
+
+    settings.keys.gemini = "g"
+    base = "https://generativelanguage.googleapis.com/v1beta/models/"
+    quota = {"error": {"details": [{"violations": [{"quotaId": "GenerateRequestsPerDayPerProjectPerModel-FreeTier"}]},
+                                   {"retryDelay": "70000s"}]}}
+    responses.post(base + "gemini-3.6-flash:generateContent", status=429, json=quota)
+    responses.post(base + "gemini-3.5-flash:generateContent", status=503, json={"error": {"message": "overloaded"}})
+    responses.post(base + "gemini-3-flash-preview:generateContent",
+                   json={"candidates": [{"content": {"parts": [{"text": '{"ok": true}'}]}, "finishReason": "STOP"}]})
+    llm = LLM(Http(max_retries=1, sleep=lambda s: None), settings)
+    assert llm.structured("writer", "sys", "p", Out).ok is True
+    assert "gemini:gemini-3.6-flash#0" in llm.exhausted
+    assert llm.model("writer") != "gemini-3.6-flash"
+    calls_36 = sum(1 for c in responses.calls if "3.6-flash" in c.request.url)
+    assert calls_36 == 1  # daily quota is not retried

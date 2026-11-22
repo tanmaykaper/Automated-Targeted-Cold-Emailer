@@ -26,6 +26,9 @@ class Sender:
     email: str = "tanmay.kaper1401@gmail.com"
     linkedin: str = "linkedin.com/in/tanmay-k-a344b1226"
     headline: str = "BSc Economics student at NMIMS Mumbai (graduating May 2027)"
+    identity: str = ("Tanmay Kaper, a final-year BSc Economics student at SVKM's NMIMS Mumbai (Sarla Anil Modi School "
+                     "of Economics), graduating May 2027, currently a Consulting Intern in KPMG's Technology & Data "
+                     "Analytics team in Mumbai. Skills: Python, R, SQL, advanced Excel, SAP Analytics Cloud, SAP Datasphere.")
     signature: str = "Tanmay Kaper\nBSc Economics, NMIMS Mumbai '27\nlinkedin.com/in/tanmay-k-a344b1226"
     proof_points: tuple[ProofPoint, ...] = field(default_factory=lambda: (
         ProofPoint(

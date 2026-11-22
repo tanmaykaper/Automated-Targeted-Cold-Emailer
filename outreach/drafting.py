@@ -69,20 +69,27 @@ who respects the reader's time — specific, plain, human. Never like a salesper
 
 HARD RULES
 1. Subject: 2-5 words, lowercase (keep proper nouns/acronyms as written), reads like a note between colleagues.
-   No "!", no ":", no emojis, no "quick question", no "opportunity", no clickbait. Make it specific to them.
+   No "!", no ":", no emojis, no "quick question", no "opportunity", no clickbait. It must name something specific
+   to THEM or to the overlap (their report/practice/news, or the concrete skill you bring) — never a generic
+   category like "strategy consulting at X". Good shapes: "your bank-ai report", "bcg x data pipelines",
+   "kearney energy + data", "econ student, sony etl work".
 2. Body starts "Hi <first name>," on its own line, then a blank line.
-3. First sentence: one grounded, specific observation taken from ONE verified fact (cite its id in fact_ids).
-   State it plainly, as something noticed — no compliments, no adjectives like impressive/inspiring.
-   If no person-level fact exists, observe something concrete about the company or the role from the facts;
-   never imply you read their posts, heard their talks, or followed their career unless a fact says so.
+3. Opening line depends on the hook confidence you are given:
+   - high/medium: one plain, specific observation from ONE verified fact (cite its id in fact_ids). Say what you
+     noticed, not how you feel about it — no compliments, no adjectives like impressive/inspiring.
+   - low (no usable fact): open with who you are and the specific reason you're writing to THIS person at THIS firm,
+     in one honest sentence (e.g. their role + the kind of work you want to learn). Do NOT describe what their job
+     involves or what senior people at their firm "often" do — that reads as lecturing. Never imply you read their
+     posts, heard their talks, or followed their career unless a fact says so.
 4. Bridge: 1-2 sentences linking their context to ONE sender proof point, using its concrete detail.
    Use only the proof-point text given. No other claims about the sender. No resume dumps.
 5. Ask: one sentence that states the goal plainly, then a low-friction, interest-based question.
    No calendar links, no meeting lengths, no "this week". Don't beg; don't apologise for writing.
-6. Body is 65-110 words (count them). Plain text, 2-4 short paragraphs, no bullets, no links, no attachments
+6. Voice: warm and direct, contractions are fine (I'm, I've), short sentences. Body is 65-110 words (count them). Plain text, 2-4 short paragraphs, no bullets, no links, no attachments
    mentioned, no sign-off or signature (the system adds it).
-7. Follow-up 1 (< 60 words, sent 4 days later in the same thread): a genuinely different angle — another fact
-   or proof point — ending with a simple question. Never "just following up", "bumping", "circling back".
+7. Follow-up 1 (< 60 words, sent 4 days later in the same thread): lead straight with a genuinely different angle —
+   a second proof point or another fact — and one line on why it matters to them; end with a simple question.
+   Don't restate company slogans. Never "just following up", "bumping", "circling back".
 8. Follow-up 2 (< 45 words, final): short and gracious; offer an easy out ("if this isn't a fit, no worries — I won't
    keep emailing") and optionally ask who else might be right to talk to.
 9. Never use these words/phrases: {", ".join(sorted(set(BANNED_PHRASES)))}.
@@ -90,11 +97,13 @@ HARD RULES
 
 CRITIC_SYSTEM = """You are a strict reviewer of cold emails before they are sent. Check the draft against the
 verified facts and the sender proof points ONLY.
-- unsupported_claims: every statement about the recipient, their company or their work that the facts do not
-  support, and every statement about the sender not present in the proof points. Paraphrase is fine; new specifics are not.
-- style_issues: flattery, generic or robotic lines, salesy tone, clichés, a subject that is vague or clickbait,
-  a pushy or calendar-style CTA, or anything a busy senior person would find off-putting.
-Be concrete. An empty list is fine if there are no problems."""
+- unsupported_claims: statements about the recipient, their company or their work that the facts do not support,
+  and statements about the sender not present in the proof points. Paraphrase is fine; new specifics are not.
+  The sender stating their own goal or why they chose to write is NOT an unsupported claim.
+- style_issues: only real problems a busy senior reader would notice — flattery, lecturing the reader about their
+  own job, generic or robotic lines, salesy tone, clichés, a vague or clickbait subject, a pushy or calendar-style CTA.
+- verdict: "pass" if there are no unsupported claims and no serious style issue; minor nitpicks still pass.
+Be concrete. Empty lists are fine."""
 
 
 def lint(subject: str, body: str, followups: list[str], first_name: str) -> list[str]:
@@ -171,6 +180,7 @@ Suggested angles:
 {angles}
 
 SENDER
+Identity (may be stated freely): {SENDER.identity}
 Goal: {goal['goal']} ({goal['availability']})
 Proof points (use exactly one in email 1; key: text):
 """ + "\n".join(f"- {p.key}: {p.text}" for p in SENDER.proof_points) + f"""
@@ -185,7 +195,7 @@ Example interest-based asks (adapt, don't copy verbatim): {' | '.join(goal['soft
     def _critic(self, lead: Lead, dr: _Draft) -> list[str]:
         d = lead.dossier
         facts = "\n".join(f"{f.id}: {f.claim}" for f in (d.verified_facts() if d else [])) or "(none)"
-        proof = "\n".join(f"- {p.text}" for p in SENDER.proof_points)
+        proof = f"- {SENDER.identity}\n" + "\n".join(f"- {p.text}" for p in SENDER.proof_points)
         prompt = (f"VERIFIED FACTS about {lead.person.display_name()} / {lead.company.name} "
                   f"(title: {lead.person.title}):\n{facts}\n\nSENDER PROOF POINTS:\n{proof}\n\n"
                   f"DRAFT\nSubject: {dr.subject}\n\n{dr.body}\n\nFollow-up 1:\n{dr.followup_1}\n\nFollow-up 2:\n{dr.followup_2}")
@@ -211,7 +221,8 @@ Example interest-based asks (adapt, don't copy verbatim): {' | '.join(goal['soft
         lint_issues, critic = self._check(lead, dr)
         attempts = 1
         if lint_issues or critic:
-            log.info("draft for %s failed QA (%d lint, %d critic) — rewriting once", lead.id, len(lint_issues), len(critic))
+            log.info("draft for %s failed QA (%d lint, %d critic) — rewriting once: %s", lead.id, len(lint_issues),
+                     len(critic), " | ".join((lint_issues + critic)[:4])[:500])
             dr = self._write(lead, lint_issues + critic)
             lint_issues, critic = self._check(lead, dr)
             attempts = 2

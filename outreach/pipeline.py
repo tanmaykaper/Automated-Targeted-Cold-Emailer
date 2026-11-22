@@ -77,7 +77,8 @@ class Context:
         self.http = http or Http()
         self.fetch_http = Http(max_retries=1, read_timeout=12, sleep=sleep) if http is None else http
         self.search = Search(self.http, settings)
-        self.llm = LLM(self.http, settings)
+        # LLM calls fail over to the next model quickly instead of burning minutes on retries
+        self.llm = LLM(Http(max_retries=1, sleep=sleep) if http is None else http, settings)
         self.verifier = Verifier(self.http, settings)
         self.finders = build_finders(self.http, settings)
         self.researcher = Researcher(self.http, self.fetch_http, self.search, self.llm, settings.outreach_mode)

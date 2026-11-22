@@ -41,7 +41,9 @@ Every tick is idempotent, so a late or dropped GitHub cron is caught up by the n
 ## Setup
 1. **Secrets** (Settings → Secrets and variables → Actions). Run the workflow with `command: doctor` to see what's
    wired. Values are never printed.
-   - Required for drafting: one of `ANTHROPIC_API_KEY` (recommended), `GROQ_API_KEY`, `GEMINI_API_KEY`
+   - Required for drafting: any of `ANTHROPIC_API_KEY` (best quality, paid), `GEMINI_API_KEY` (free; comma-separate keys from
+     several Google projects, since free quota is 20 requests/day per model per project), `GROQ_API_KEY` (free, high volume).
+     Configure more than one and the router falls back automatically when a model runs out of quota.
    - Required for sending + reply detection: `SENDER_EMAIL`, `GMAIL_APP_PASSWORD` (IMAP must be enabled in Gmail)
    - Recommended: `SERPER_API_KEY` (search + discovery), `HUNTER_API_KEY` (finder + verifier), one API verifier
      (`MILLIONVERIFIER_API_KEY` / `ZEROBOUNCE_API_KEY` / `REOON_API_KEY` / `BOUNCER_API_KEY`)
