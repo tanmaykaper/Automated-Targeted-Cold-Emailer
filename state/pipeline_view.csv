@@ -1,12 +1,71 @@
 id,state,state_reason,tier,score,name,title,company,domain,email,email_status,email_confidence,hook,subject,body,sends,last_sent,source,updated_at
+ld_102fd49ea1d7,APPROVED,QA passed,B,68,Guillaume Guy,Technical Team Lead,Airbnb,airbnb.com,guillaume.guy@airbnb.com,VERIFIED,85,medium,"airbnb ai search, etl pipelines","Hi Guillaume,
+
+Airbnb recently launched the 'Describe what you’re looking for' AI search feature.
+
+I'm a final-year economics student at NMIMS Mumbai, currently interning in KPMG's Technology & Data Analytics team. During my internship, I built an automated Python ETL pipeline for Sony Entertainment's raw BARC viewership data, replacing a manual process.
+
+I'm exploring remote or part-time data analytics roles alongside my final year. Would you be open to a short chat about whether your team ever takes on remote interns?
+
+Best,
+Tanmay Kaper
+BSc Economics, NMIMS Mumbai '27 · linkedin.com/in/tanmay-k-a344b1226",0,,legacy_v1,2026-11-23T10:13:34+00:00
+ld_86b60eb1d262,APPROVED,QA passed,A,80,Madhav Kapur,"Principal, Corporate Strategy",HP,hp.com,madhav.kapur@hp.com,VERIFIED,100,high,your drive to survive article,"Hi Madhav,
+
+I noticed your Medium article on how Netflix's 'Drive to Survive' reshaped Formula 1's broader market positioning.
+
+I am a final-year economics student at NMIMS Mumbai looking for a remote strategy or analytics role alongside my studies. As a data analyst intern at Yokohama Off-Highway Tyres, I analysed 10 competitor portfolios across 200+ SKUs to find pricing gaps for their strategy team.
+
+Would you be open to a short chat about whether your corporate strategy team at HP takes on part-time interns?
+
+Best,
+Tanmay Kaper
+BSc Economics, NMIMS Mumbai '27 · linkedin.com/in/tanmay-k-a344b1226",0,,search:serper,2026-11-23T10:12:03+00:00
+ld_d337ebc0aec3,APPROVED,QA passed,B,74,Kushal Raja,Partner,Bain & Company,bain.com,kushal.raja@bain.com,CATCH_ALL,83,low,"nmims econ, pricing analysis","Hi Kushal,
+
+I'm a final-year economics student at NMIMS Mumbai writing to connect with Bain's strategy practice in Mumbai.
+
+During my internship at Yokohama Off-Highway Tyres, I analysed 10 competitor portfolios across 200+ SKUs to help the strategy team find pricing gaps. I can bring this concrete market structure and pricing analysis to client strategy work.
+
+I'm looking for a part-time consulting internship alongside my final year. Would it be worth sending over my CV, or is someone else on your team better placed to ask?
+
+Best,
+Tanmay Kaper
+BSc Economics, NMIMS Mumbai '27 · linkedin.com/in/tanmay-k-a344b1226",0,,search:serper,2026-11-23T10:13:02+00:00
+ld_e5f0feb9f29b,APPROVED,QA passed,B,75,Lokendra Singh Baghel,Partner,Takshashila Consulting,googlegroups.com,lokendra-singh@googlegroups.com,VERIFIED,85,low,"econ student, competitor pricing work","Hi Lokendra,
+
+I'm a final-year economics student at NMIMS writing to ask about part-time strategy internship opportunities at Takshashila Consulting.
+
+Alongside my studies, I worked as a data analyst intern at Yokohama Off-Highway Tyres, where I analysed 10 competitor portfolios across 200+ SKUs to find pricing gaps for the strategy team. I'm also currently interning in KPMG's Technology & Data Analytics team in Mumbai.
+
+I'm looking to support Takshashila's strategy research on a part-time basis alongside my final year. Would you be open to a quick conversation, or is someone else on your team better placed to ask?
+
+Best,
+Tanmay Kaper
+BSc Economics, NMIMS Mumbai '27 · linkedin.com/in/tanmay-k-a344b1226",0,,search:serper,2026-11-23T10:12:27+00:00
 ld_5c0a4a6298cd,DISQUALIFIED,rejected title term 'recruitment',,,Srinivasareddy Venna,Recruitment Consultant,Confidential ...,,,,,,,,0,,legacy_v1,2026-11-20T14:37:13+00:00
+ld_9125d998b3ef,DISQUALIFIED,Tier C (58): 58/100 → Tier C. Strongest: title_fit (title matches tier B ('engagement manager')). Weakest: signal (no signals found).,C,58,Hari Mutyala,Engagement Manager,Stryker,stryker.com,hari.mutyala@stryker.com,CATCH_ALL,84,low,,,0,,search:serper,2026-11-23T10:08:25+00:00
 ld_a467c7a2c3cf,DISQUALIFIED,title outside target seniority,,,Anil Kumar Putla,Dept Head,India YAMAHA Motor Pvt. Ltd.,,,,,,,,0,,legacy_v1,2026-11-20T14:37:14+00:00
 ld_0f3852339f40,NEEDS_ENRICHMENT,"UNVERIFIED_QUARANTINED: no mailbox-level evidence (SMTP blocked/inconclusive, no API verifier result)",,,Parag Shah,Founder and Partner,Amara Partners,amarapt.com,parag.shah@privateequityinternational.com,UNVERIFIED_QUARANTINED,20,,,,0,,legacy_v1,2026-11-20T14:37:13+00:00
+ld_14cad4b8fede,NEEDS_ENRICHMENT,all candidate emails INVALID,,,Sanil M Mhatre,Associate Partner,Management Consulting,managementconsulted.com,,,,,,,0,,search:serper,2026-11-23T10:03:53+00:00
+ld_306f0bdbbf6a,NEEDS_ENRICHMENT,all candidate emails INVALID,,,Abhishek Kochar,Partner,Strategy and M&A Consulting,fredericfernandezassociates.com,,,,,,,0,,search:serper,2026-11-23T10:04:34+00:00
 ld_39b19f891130,NEEDS_ENRICHMENT,"UNVERIFIED_QUARANTINED: no mailbox-level evidence (SMTP blocked/inconclusive, no API verifier result)",,,Ramana Reddy,Manager Management Consulting,...,,ramana.reddy@whitehouse.gov,UNVERIFIED_QUARANTINED,20,,,,0,,legacy_v1,2026-11-20T14:37:13+00:00
+ld_5579deba0553,NEEDS_ENRICHMENT,no email found; company domain unresolved,,,Prakkhar ..,Co-Founder,KPM Strategy Consulting,,,,,,,,0,,search:serper,2026-11-23T10:02:25+00:00
+ld_68a42509c56c,NEEDS_ENRICHMENT,all candidate emails INVALID,,,Rohit Bhagwat,Founder & CEO,RidgeCrest Strategy Consulting,justdial.com,,,,,,,0,,search:serper,2026-11-23T10:02:49+00:00
 ld_6c1204d092bc,NEEDS_ENRICHMENT,all candidate emails INVALID,,,Vibhas Chandrachood,Senior Consultant,Health Tech ...,,,,,,,,0,,legacy_v1,2026-11-20T14:37:14+00:00
 ld_705340120d61,NEEDS_ENRICHMENT,"UNVERIFIED_QUARANTINED: no mailbox-level evidence (SMTP blocked/inconclusive, no API verifier result)",,,Adam Kay,TMT Strategy Senior Consultant,Monitor ...,,adam.kay@monitors.com,UNVERIFIED_QUARANTINED,20,,,,0,,legacy_v1,2026-11-20T14:37:14+00:00
+ld_726bb9a7497b,NEEDS_ENRICHMENT,all candidate emails INVALID,,,Ashish Sharma,Head of Strategy & Product,Transforming CX,coveo.com,,,,,,,0,,search:serper,2026-11-23T10:05:43+00:00
+ld_862eee737f0c,NEEDS_ENRICHMENT,all candidate emails INVALID,,,Anu Kaimal,Founder @Matterfox Consulting,Insights & Brand Strategy,provokeinsights.com,,,,,,,0,,search:serper,2026-11-23T10:03:08+00:00
 ld_a07c21ac930d,NEEDS_ENRICHMENT,"UNVERIFIED_QUARANTINED: no mailbox-level evidence (SMTP blocked/inconclusive, no API verifier result)",,,Kara Vachon,"Senior Manager, Customer Strategy",...,,kara.vachon@whitehouse.gov,UNVERIFIED_QUARANTINED,20,,,,0,,legacy_v1,2026-11-20T14:37:14+00:00
 ld_a543ed1ed69f,NEEDS_ENRICHMENT,"UNVERIFIED_QUARANTINED: no mailbox-level evidence (SMTP blocked/inconclusive, no API verifier result)",,,Joseph Ooi,"Vice President, Infrastructure Private Equity",...,,joseph.ooi@whitehouse.gov,UNVERIFIED_QUARANTINED,20,,,,0,,legacy_v1,2026-11-20T14:37:14+00:00
+ld_af7b9c72768b,NEEDS_ENRICHMENT,all candidate emails INVALID,,,Siddharth R.,Vice President,Strategic planning & Insights,myworkdayjobs.com,,,,,,,0,,search:serper,2026-11-23T10:06:11+00:00
+ld_c82b38c9d797,NEEDS_ENRICHMENT,no email found; company domain unresolved,,,Abhishek Singh,Engagement Manager,Strategic Accounts l PMP®,,,,,,,,0,,search:serper,2026-11-23T10:06:11+00:00
+ld_d94669499a8b,NEEDS_ENRICHMENT,all candidate emails INVALID,,,Srinivas Rao,Marketing Director,AI-Driven B2B SaaS Growth,mediabistro.com,,,,,,,0,,search:serper,2026-11-23T10:05:08+00:00
+ld_f4e454a2aaaa,NEEDS_ENRICHMENT,all candidate emails INVALID,,,Deepa Pillai,Founder Growth Darji,Business Consulting,bcg.com,,,,,,,0,,search:serper,2026-11-23T10:03:29+00:00
+ld_f66e83d37053,NEEDS_ENRICHMENT,all candidate emails INVALID,,,Piyush Gupta,Founder,Visista Farms,vittmarg.com,,,,,,,0,,search:serper,2026-11-23T10:03:39+00:00
+ld_10c84ff061f8,SCORED,62/100 → Tier B. Strongest: title_fit (title matches tier B ('engagement manager')). Weakest: hook_quality (no specific public hook found — fall back to a role/company-level angle).,B,62,Joydeep Goswami,Engagement Manager,Capgemini,capgemini.com,joydeep.goswami@capgemini.com,CATCH_ALL,82,low,,,0,,search:serper,2026-11-23T10:08:25+00:00
+ld_171c09811531,SCORED,64/100 → Tier B. Strongest: title_fit (title matches tier A ('president')). Weakest: signal (no signals found).,B,64,Ankur Khanna,Vice President,"Data, Analytics and AI",sas.com,ankur.khanna@sas.com,CATCH_ALL,81,low,,,0,,search:serper,2026-11-23T10:08:25+00:00
+ld_512710f267b6,SCORED,68/100 → Tier B. Strongest: title_fit (title matches tier A ('president')). Weakest: hook_quality (no specific public hook found — fall back to a role/company-level angle).,B,68,Amit Kapur,Vice President,"AI, Data and Analytics",nttdata.com,amit.kapur@nttdata.com,CATCH_ALL,82,low,,,0,,search:serper,2026-11-23T10:08:25+00:00
 ld_00599a532c92,SENT,v1 status Sent,,,Radhika Sriram,Engagement Manager,McKinsey & Company,mckinsey.com,radhika_sriram@mckinsey.com,,,,Quick question on McKinsey data,"I saw McKinsey’s recent analysis on India’s digital economy, which emphasized the expanding role of data analytics in strategy.
 I am a BSc Economics student at NMIMS Mumbai, currently interning in KPMG’s Data & SAP department, and founder of a D2C apparel brand.
 My work involves Python data modelling and SAP analytics for live client strategy engagements, complementing my economics research and entrepreneurial experience.
@@ -875,6 +934,17 @@ Thank you for considering my request and for your time.
 Best regards,
 Tanmay Kaper
 tanmay.kaper1401@gmail.com",1,2026-09-15T14:42:16.636749+00:00,legacy_v1,2026-11-20T14:35:31+00:00
+ld_1d346f18bbd7,SENT,step 0 sent,A,85,Brijesh Arora,Group CTO and Head of Global Payments,Sasai Fintech,sasaifintech.com,brijesh@sasaifintech.com,VERIFIED,100,high,sasai western union app,"Hi Brijesh,
+
+Sasai Fintech recently launched an international money transfer app for South Africa with Western Union.
+
+I'm a final-year economics student at NMIMS Mumbai and a consulting intern in KPMG's Technology & Data Analytics team. Outside my coursework, I built an automated Python ETL pipeline for Sony Entertainment's raw BARC viewership data, replacing a manual process.
+
+I am looking for a remote or part-time internship in data analytics or strategy alongside my final year. Would you be open to a short conversation about whether your team takes on remote interns?
+
+Best,
+Tanmay Kaper
+BSc Economics, NMIMS Mumbai '27 · linkedin.com/in/tanmay-k-a344b1226",1,2026-11-23T10:17:42+00:00,search:serper,2026-11-23T10:17:42+00:00
 ld_1dcc76d21188,SENT,v1 status Sent,,,Rahul Pagadala,Senior Consultant,KPMG ...,,rahul.pagadala@kpmg.com,,,,KPMG data strategy quick intro,"Dear Rahul,
 
 I noticed KPMG’s recent publication on data‑driven audit methodologies for financial services.
@@ -1280,6 +1350,17 @@ Would a brief 10‑15 minute call this week work to discuss how I might contribu
 I have attached my resume for your reference.
 — Tanmay Kaper
 tanmay.kaper1401@gmail.com",1,2026-07-15T02:43:59.263756+00:00,legacy_v1,2026-11-20T14:35:31+00:00
+ld_2bcf81d0b830,SENT,step 0 sent,A,87,Priyank Shah,"Senior Vice President || Data, Analytics & AI",Prowess Consulting,prowessconsulting.com,priyank.shah@prowessconsulting.com,VERIFIED,90,medium,prowess leap and python etl,"Hi Priyank,
+
+Prowess recently launched Prowess LEAP on top of the MessagePilot.ai platform to automate enterprise content analysis.
+
+I'm a final-year economics student at NMIMS Mumbai and a consulting intern at KPMG in Technology & Data Analytics. In my current role, I built an automated Python ETL pipeline for Sony Entertainment's raw BARC viewership data, replacing a manual process.
+
+As Prowess scales its AI and data transformation offerings, I'm looking for a remote or part-time internship in data analytics alongside my final year. Is it worth a brief chat, or is someone else on your team better placed to ask?
+
+Best,
+Tanmay Kaper
+BSc Economics, NMIMS Mumbai '27 · linkedin.com/in/tanmay-k-a344b1226",1,2026-11-23T10:14:46+00:00,search:serper,2026-11-23T10:14:46+00:00
 ld_2c334881ae11,SENT,v1 status Sent,,,Tushar Chandra Singh,"Director, Corporate Strategy",...,,tushar.singh@login.gov,,,,Quick question on corporate strategy,"Dear Tushar,
 
 I noticed that your role as Director of Corporate Strategy involves shaping the company’s long‑term growth roadmap.
@@ -7089,6 +7170,17 @@ I am eager to learn how DRA Homes integrates analytics into its development proc
 
 — Tanmay Kaper
 tanmay.kaper1401@gmail.com",1,2026-06-19T16:30:21+00:00,legacy_v1,2026-11-20T14:35:31+00:00
+ld_f439edcf46b7,SENT,step 0 sent,A,97,S Sathish,Partner Management Consulting,KPMG India,kpmg.com,ssathish@kpmg.com,VERIFIED,100,high,manufacturing policy + FAME II,"Hi S,
+
+I noticed your talk at GMC 25 on policy, strategy, and shaping India's manufacturing roadmap.
+
+I'm a final-year economics student at NMIMS Mumbai and currently a consulting intern in KPMG's Technology & Data Analytics team. Related to manufacturing policy work, I wrote a research paper on how effective India's FAME II policy was at driving EV adoption.
+
+I'm looking for remote or part-time internship opportunities in strategy and sectoral research alongside my final year. Is it worth a brief conversation to see if your team takes on interns?
+
+Best,
+Tanmay Kaper
+BSc Economics, NMIMS Mumbai '27 · linkedin.com/in/tanmay-k-a344b1226",1,2026-11-23T10:13:37+00:00,search:serper,2026-11-23T10:13:37+00:00
 ld_f5085356363d,SENT,v1 status Sent,,,Graham L. Slack,"Vice President, Chief Economist",BHP ...,bhp.com,graham.slack@bhp.com,,,,Quick question on BHP data strategy,"Dear Graham,
 
 I noted BHP’s recent analysis on commodity price cycles published in the 2023 Economic Outlook.
@@ -7159,6 +7251,17 @@ Thank you for considering my request.
 Kind regards,
 Tanmay Kaper
 tanmay.kaper1401@gmail.com",1,2026-10-19T20:26:12.105327+00:00,legacy_v1,2026-11-20T14:35:31+00:00
+ld_f5b0c56d90db,SENT,step 0 sent,A,87,Ravi Goel,Chief of Staff (CEO Office),Meesho,meesho.com,ravi.goel@meesho.com,VERIFIED,90,medium,meesho vaani + c-suite dashboards,"Hi Ravi,
+
+Meesho's launch of the Vaani AI voice assistant and its investment into Meesho Networks point to a clear push into generative AI.
+
+I'm a final-year economics student at NMIMS and a consulting intern in KPMG's Technology & Data Analytics team. At KPMG, I rebuilt C-suite dashboards in SAP Analytics Cloud for Sony Entertainment, making them over 80% more responsive, and owned the CEO dashboard data feeds.
+
+I'm looking for a part-time strategy or data analytics internship alongside my studies. Would it be worth sending over a one-page CV to see if there's any scope to support your office?
+
+Best,
+Tanmay Kaper
+BSc Economics, NMIMS Mumbai '27 · linkedin.com/in/tanmay-k-a344b1226",1,2026-11-23T10:15:53+00:00,search:serper,2026-11-23T10:15:53+00:00
 ld_f5cafe039e28,SENT,v1 status Sent,,,Venkata Swamy,Program Manager,Women Development ...,,venkata.swamy@awdf.org,,,,Quick question on women development data,"I saw the recent Women Development Organization report on skill training programs for women across OIC member states.
 I am a BSc Economics student at NMIMS Mumbai, currently interning in KPMG’s Data & SAP department where I build analytics solutions using SAP Analytics Cloud and Python.
 I also founded Nightwalk Fashion, a D2C apparel brand, and have published research on economic policy.
@@ -7359,4 +7462,13 @@ Would a quick 15‑minute call this week work to discuss how my analytical exper
 
 — Tanmay Kaper
 tanmay.kaper1401@gmail.com",1,2026-06-19T16:30:04+00:00,legacy_v1,2026-11-20T14:35:31+00:00
-ld_102fd49ea1d7,VERIFIED,"VERIFIED (provider, confidence 85)",,,Guillaume Guy,Technical Team Lead,Airbnb,airbnb.com,guillaume.guy@airbnb.com,VERIFIED,85,,,,0,,legacy_v1,2026-11-20T14:37:13+00:00
+ld_027eefba8c57,VERIFIED,"CATCH_ALL (catch_all, confidence 80)",,,Sridhar Viswanathan,Assistant Vice President,Big Data Analytics,ibm.com,sridhar.viswanathan@ibm.com,CATCH_ALL,80,,,,0,,search:serper,2026-11-23T10:06:15+00:00
+ld_0c6feff7d25e,VERIFIED,"CATCH_ALL (catch_all, confidence 80)",,,Moka Bhikshalu,Chief Data Officer,Business Transformation,thehackettgroup.com,mbhikshalu@thehackettgroup.com,CATCH_ALL,80,,,,0,,search:serper,2026-11-23T10:06:17+00:00
+ld_1e8a9b24c416,VERIFIED,"CATCH_ALL (catch_all, confidence 80)",,,Arghya Paul,Principal,Tata Strategic Management Group,tata.com,arghyapaul@tata.com,CATCH_ALL,80,,,,0,,search:serper,2026-11-23T10:05:51+00:00
+ld_2b5246617cc7,VERIFIED,"CATCH_ALL (catch_all, confidence 80)",,,Vikas Yadav,Principal,Corporate Strategy & M&A,arcweb.com,vyadav@arcweb.com,CATCH_ALL,80,,,,0,,search:serper,2026-11-23T10:05:53+00:00
+ld_5a7568b9fed9,VERIFIED,"CATCH_ALL (catch_all, confidence 75)",,,Prerana Munipalli,Global Engagement Manager,HCLTech,hcltech.com,pmunipalli@hcltech.com,CATCH_ALL,75,,,,0,,search:serper,2026-11-23T10:05:55+00:00
+ld_5faa60c125dd,VERIFIED,"CATCH_ALL (catch_all, confidence 75)",,,Punitha K K,Director,Opsera,opsera.ai,punitha@opsera.ai,CATCH_ALL,75,,,,0,,search:serper,2026-11-23T10:04:45+00:00
+ld_8bc66597fecb,VERIFIED,"CATCH_ALL (catch_all, confidence 75)",,,Shayan Pal,Vice President,JPMorgan Chase & Co.,jpmorganchase.com,shayan.pal@jpmchase.com,CATCH_ALL,75,,,,0,,search:serper,2026-11-23T10:06:32+00:00
+ld_d44b28533ee7,VERIFIED,"CATCH_ALL (catch_all, confidence 75)",,,Max Reinertsen,"Head of Strategy & Ops, Chief of Staff to CEO",Artyc,shipartyc.com,max@shipartyc.com,CATCH_ALL,75,,,,0,,search:serper,2026-11-23T10:05:46+00:00
+ld_f5ce655e51b7,VERIFIED,"CATCH_ALL (catch_all, confidence 75)",,,Adarsh Noronha,Country Director,HubSpot,hubspot.com,anoronha@hubspot.com,CATCH_ALL,75,,,,0,,search:serper,2026-11-23T10:05:10+00:00
+ld_f94e7597abcd,VERIFIED,"CATCH_ALL (catch_all, confidence 79)",,,Nishanth H R,Engagement Manager,Tata Consultancy Services,tata.com,nishanthr@tata.com,CATCH_ALL,79,,,,0,,search:serper,2026-11-23T10:06:13+00:00
