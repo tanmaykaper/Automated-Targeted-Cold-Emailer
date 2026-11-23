@@ -30,9 +30,17 @@ def test_syntax(email, ok):
 
 @pytest.mark.parametrize("email,ok", [("info@acme.com", False), ("support.india@acme.com", False),
                                       ("noreply@acme.com", False), ("ann@mailinator.com", False),
-                                      ("ira.shah@acme.com", True), ("hima@acme.com", True)])
+                                      ("ira.shah@acme.com", True), ("hima@acme.com", True),
+                                      ("lokendra-singh@googlegroups.com", False), ("team@groups.io", False),
+                                      ("ann@lists.acme.org", False)])
 def test_role_and_disposable(email, ok):
     assert policy_ok(email)[0] is ok
+
+
+def test_previously_verified_mailing_list_is_never_sendable(settings):
+    from outreach.models import VerificationResult
+    stale = VerificationResult(email="lokendra-singh@googlegroups.com", status=EmailStatus.VERIFIED, confidence=90)
+    assert not sendable(stale, settings)
 
 
 def test_invalid_domain(verifier):

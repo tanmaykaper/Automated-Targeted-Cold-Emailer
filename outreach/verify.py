@@ -40,6 +40,12 @@ DISPOSABLE = {
     "trashmail.com", "getnada.com", "sharklasers.com", "dispostable.com", "maildrop.cc", "throwawaymail.com",
     "fakeinbox.com", "mintemail.com", "mohmal.com", "emailondeck.com", "tempinbox.com", "spamgourmet.com",
 }
+# Mailing lists / group aliases: a "verified" mailbox here is a list that fans out to many people.
+LIST_DOMAINS = {
+    "googlegroups.com", "groups.google.com", "groups.io", "yahoogroups.com", "freelists.org",
+    "lists.sourceforge.net", "groups.outlook.com", "simplelists.com", "mailman.org",
+}
+LIST_SUBDOMAIN_PREFIXES = ("lists.", "list.", "listserv.", "groups.", "mailman.", "googlegroups.")
 PROVIDER_PROOF = {"verified", "valid"}
 PROVIDER_PROOF_MAX_AGE = timedelta(days=180)
 
@@ -60,6 +66,8 @@ def policy_ok(email: str) -> tuple[bool, str]:
         return False, f"role account ({local}@)"
     if domain in DISPOSABLE:
         return False, "disposable domain"
+    if domain in LIST_DOMAINS or domain.startswith(LIST_SUBDOMAIN_PREFIXES):
+        return False, "mailing-list / group address"
     return True, "ok"
 
 
@@ -292,6 +300,9 @@ class Verifier:
 
 def sendable(v: VerificationResult | None, settings: Settings) -> bool:
     if v is None:
+        return False
+    # Re-apply address policy so records verified before a policy change can never send.
+    if not syntax_ok(v.email)[0] or not policy_ok(v.email)[0]:
         return False
     if v.status == EmailStatus.VERIFIED:
         return True
