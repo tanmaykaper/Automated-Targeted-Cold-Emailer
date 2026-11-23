@@ -7,3 +7,4 @@ reports/runs/
 *.xlsx
 state/.*.tmp
 .DS_Store
+reports/

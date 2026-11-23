@@ -91,6 +91,6 @@ state/leads.jsonl    source of truth, one lead per line (committed)
 state/events.jsonl   append-only audit log (sends, migrations, replies)
 state/legacy/        v1 files, migrated once and kept for reference
 tests/               pytest suite + fixtures/dryrun_sample.csv
-reports/             dry-run reports
+reports/             local dry-run reports (git-ignored: they contain researched personal data)
 scripts/commit_state.sh   rebase-and-retry state commit used by the workflow
 ```

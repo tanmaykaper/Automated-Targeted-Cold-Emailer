@@ -208,3 +208,10 @@ def test_ddg_lite_parser():
             'Praxis &amp;amp; Co</a><td class=\'result-snippet\'>Consulting &amp;amp; transformation</td>')
     r = parse_ddg_lite(page)
     assert r[0].url == "https://www.praxisga.com/" and r[0].title == "Praxis & Co" and "&" in r[0].snippet
+
+
+def test_subject_normalisation():
+    from outreach.drafting import normalize_subject
+    assert normalize_subject("Sapient Sustain and Python ETL") == "sapient sustain and python ETL"
+    assert normalize_subject("India's Energy Quadrilemma.") == "india's energy quadrilemma"
+    assert normalize_subject("FY27 budget + BCG X") == "FY27 budget + BCG X"

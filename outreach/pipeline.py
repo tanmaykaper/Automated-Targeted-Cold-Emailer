@@ -35,7 +35,8 @@ from .web import Search
 
 log = logging.getLogger(__name__)
 
-NOT_LEADS_FAULT = {"circuit_open", "budget", "unavailable", "rate_limit"}
+# Provider-side conditions: retried next tick without counting against the lead
+NOT_LEADS_FAULT = {"circuit_open", "budget", "unavailable", "rate_limit", "quota", "timeout", "network", "server_error"}
 MAX_STAGE_ATTEMPTS = 3
 
 
@@ -319,7 +320,13 @@ def stage_draft(ctx: Context) -> None:
         return
     leads = ctx.store.by_state(LeadState.SCORED)
     leads.sort(key=lambda l: (l.score.tier if l.score else "Z", -(l.score.total if l.score else 0)))
-    _each(ctx, "draft", leads, lambda l: _draft(ctx, l), limit=ctx.s.drafts_per_tick)
+    _each(ctx, "draft", leads, lambda l: _draft(ctx, l) if ctx.llm.available else _no_llm(), limit=ctx.s.drafts_per_tick)
+    if not ctx.llm.available:
+        st.notes.append("all LLM models out of quota for this run — remaining leads wait for the next tick")
+
+
+def _no_llm() -> str:
+    raise LLMError("unavailable", "LLM quota exhausted for this run")
 
 
 def stage_send(ctx: Context) -> None:

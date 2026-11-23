@@ -87,7 +87,7 @@ def test_per_lead_errors_are_isolated_and_parked(ctx, monkeypatch):
 
     def flaky(c, lead):
         if lead.person.first_name == "Rohan":
-            raise ProviderError("hunter", "server_error", "boom")
+            raise ProviderError("hunter", "client_error", "bad request for this lead")
         return real(c, lead)
 
     monkeypatch.setattr(P, "_verify_lead", flaky)
@@ -97,7 +97,7 @@ def test_per_lead_errors_are_isolated_and_parked(ctx, monkeypatch):
     assert states["Madhur"] == LeadState.VERIFIED
     assert states["Rohan"] == LeadState.NEEDS_REVIEW and "3x" in next(
         l for l in ctx.store.all() if l.person.first_name == "Rohan").state_reason
-    assert rep.stage("verify").errors["server_error"] == 3  # one per tick (report is per Context)
+    assert rep.stage("verify").errors["client_error"] == 3  # one per tick (report is per Context)
 
 
 def test_stage_crash_does_not_stop_later_stages(ctx, monkeypatch):
@@ -177,3 +177,19 @@ def test_followups_skipped_without_imap(ctx):
     ctx.store.save(lead)
     rep = P.run(ctx, ["sync_replies", "send"])   # no Gmail creds → IMAP unavailable
     assert not ctx.followups_allowed and not rep.would_send
+
+
+def test_llm_quota_exhaustion_never_parks_leads(ctx):
+    from outreach.llm import LLMError
+
+    ingest(ctx, GOOD)
+    P.run(ctx, ["verify", "research", "score"])
+
+    def out_of_quota(*a, **k):
+        raise LLMError("quota", "daily quota exhausted")
+
+    ctx.drafter.draft = out_of_quota
+    for _ in range(4):
+        P.run(ctx, ["draft"])
+    lead = next(ctx.store.all())
+    assert lead.state == LeadState.SCORED and not lead.attempts.get("draft")

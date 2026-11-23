@@ -26,7 +26,8 @@ BANNED_PHRASES = (
     "seamless", "revolutioniz", "testament", "tapestry", "kindly", "dear sir", "dear ma'am", "to whom it may concern",
     "i would love to", "i'd love to", "excited to", "inspiring", "admire", "fascinat", "deeply", "truly",
     "my name is", "quick question", "attached my", "i have attached", "please find attached", "as an ai",
-    "rest assured", "look forward to hearing", "at your earliest convenience",
+    "rest assured", "look forward to hearing", "at your earliest convenience", "rigorous", "hands-on experience",
+    "deep expertise", "this helped streamline",
 )
 SPAM_WORDS = (
     "free", "guarantee", "act now", "urgent", "100%", "risk-free", "click here", "limited time", "winner",
@@ -74,15 +75,18 @@ HARD RULES
    category like "strategy consulting at X". Good shapes: "your bank-ai report", "bcg x data pipelines",
    "kearney energy + data", "econ student, sony etl work".
 2. Body starts "Hi <first name>," on its own line, then a blank line.
-3. Opening line depends on the hook confidence you are given:
-   - high/medium: one plain, specific observation from ONE verified fact (cite its id in fact_ids). Say what you
-     noticed, not how you feel about it — no compliments, no adjectives like impressive/inspiring.
-   - low (no usable fact): open with who you are and the specific reason you're writing to THIS person at THIS firm,
-     in one honest sentence (e.g. their role + the kind of work you want to learn). Do NOT describe what their job
-     involves or what senior people at their firm "often" do — that reads as lecturing. Never imply you read their
+3. Opening line:
+   - If ANY verified fact exists (person or company), open with one plain, specific observation from the most specific
+     one (cite its id in fact_ids). Say what you noticed, not how you feel about it — no compliments, no adjectives
+     like impressive/inspiring. Prefer launches, reports, initiatives and named offerings over generic descriptions.
+   - Only if there are NO verified facts: open with who you are and why you're writing to this person at this firm,
+     in one honest sentence.
+   - Never describe the reader's personal remit ("your role leading X", "you oversee Y") unless a fact states it —
+     their title is all you know. Never describe what people in their job "often" do. Never imply you read their
      posts, heard their talks, or followed their career unless a fact says so.
 4. Bridge: 1-2 sentences linking their context to ONE sender proof point, using its concrete detail.
-   Use only the proof-point text given. No other claims about the sender. No resume dumps.
+   Use only the proof-point text given. Do not add outcomes, benefits or adjectives the proof point doesn't state
+   (no "this helped streamline…", "rigorous", "hands-on", "deep expertise"). No resume dumps, no self-praise.
 5. Ask: one sentence that states the goal plainly, then a low-friction, interest-based question.
    No calendar links, no meeting lengths, no "this week". Don't beg; don't apologise for writing.
 6. Voice: warm and direct, contractions are fine (I'm, I've), short sentences. Body is 65-110 words (count them). Plain text, 2-4 short paragraphs, no bullets, no links, no attachments
@@ -97,13 +101,21 @@ HARD RULES
 
 CRITIC_SYSTEM = """You are a strict reviewer of cold emails before they are sent. Check the draft against the
 verified facts and the sender proof points ONLY.
-- unsupported_claims: statements about the recipient, their company or their work that the facts do not support,
-  and statements about the sender not present in the proof points. Paraphrase is fine; new specifics are not.
-  The sender stating their own goal or why they chose to write is NOT an unsupported claim.
+- unsupported_claims: statements about the recipient, their company or their work that the facts do not support
+  (including any description of the recipient's personal remit beyond their title), and statements about the sender
+  not present in the identity/proof points — including added outcomes or benefits ("this helped streamline…").
+  Paraphrase is fine; new specifics are not. The sender stating their own goal or why they chose to write is fine.
 - style_issues: only real problems a busy senior reader would notice — flattery, lecturing the reader about their
-  own job, generic or robotic lines, salesy tone, clichés, a vague or clickbait subject, a pushy or calendar-style CTA.
+  own job, generic self-descriptions ("I combine rigorous coursework with…"), filler sentences, salesy tone, clichés,
+  a vague or clickbait subject, a pushy or calendar-style CTA.
 - verdict: "pass" if there are no unsupported claims and no serious style issue; minor nitpicks still pass.
 Be concrete. Empty lists are fine."""
+
+
+def normalize_subject(subject: str) -> str:
+    """Internal-looking subjects: lowercase everything except acronyms (ETL, AI, BCG); strip end punctuation."""
+    words = subject.strip().rstrip(".!?:").split()
+    return " ".join(w if w.isupper() or any(c.isdigit() for c in w) else w.lower() for w in words)
 
 
 def lint(subject: str, body: str, followups: list[str], first_name: str) -> list[str]:
@@ -206,6 +218,7 @@ Example interest-based asks (adapt, don't copy verbatim): {' | '.join(goal['soft
         return issues
 
     def _check(self, lead: Lead, dr: _Draft) -> tuple[list[str], list[str]]:
+        dr.subject = normalize_subject(dr.subject)
         first = lead.person.first_name or lead.person.display_name().split()[0]
         lint_issues = lint(dr.subject, dr.body, [dr.followup_1, dr.followup_2], first)
         valid = {f.id for f in (lead.dossier.verified_facts() if lead.dossier else [])}
@@ -238,4 +251,4 @@ Example interest-based asks (adapt, don't copy verbatim): {' | '.join(goal['soft
                                       critic_issues=critic, attempts=attempts))
 
 
-__all__ = ["Drafter", "lint", "LLMError", "SIGN_OFF"]
+__all__ = ["Drafter", "lint", "normalize_subject", "LLMError", "SIGN_OFF"]

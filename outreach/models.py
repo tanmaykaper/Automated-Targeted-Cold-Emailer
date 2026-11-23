@@ -163,7 +163,9 @@ class EmailMessage(_Model):
 
     @property
     def word_count(self) -> int:
-        return len(re.findall(r"[A-Za-z0-9'’\-]+", self.body))
+        """Words in the message itself, excluding the appended sign-off/signature."""
+        text = re.split(r"\n\n(?:Best,\n|Tanmay\s*$)", self.body)[0]
+        return len(re.findall(r"[A-Za-z0-9'’\-]+", text))
 
 
 class QAReport(_Model):
