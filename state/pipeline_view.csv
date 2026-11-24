@@ -1,4 +1,15 @@
 id,state,state_reason,tier,score,name,title,company,domain,email,email_status,email_confidence,hook,subject,body,sends,last_sent,source,updated_at
+ld_0c6feff7d25e,APPROVED,QA passed,B,68,Moka Bhikshalu,Chief Data Officer,Business Transformation,thehackettgroup.com,mbhikshalu@thehackettgroup.com,CATCH_ALL,80,low,python etl and enterprise data,"Hi Moka,
+
+I noticed your focus on helping scaling tech founders turn enterprise data into faster decisions.
+
+I'm a final-year economics student at NMIMS Mumbai and currently a Consulting Intern in KPMG's Technology & Data Analytics team. There, I built an automated Python ETL pipeline for Sony Entertainment's raw BARC viewership data, replacing a manual process.
+
+I'm looking for a remote or part-time analytics internship alongside my final year. Would you be open to a quick chat to see if my background could be helpful to your team?
+
+Best,
+Tanmay Kaper
+BSc Economics, NMIMS Mumbai '27 · linkedin.com/in/tanmay-k-a344b1226",0,,search:serper,2026-11-24T23:58:01+00:00
 ld_102fd49ea1d7,APPROVED,QA passed,B,68,Guillaume Guy,Technical Team Lead,Airbnb,airbnb.com,guillaume.guy@airbnb.com,VERIFIED,85,medium,"airbnb ai search, etl pipelines","Hi Guillaume,
 
 Airbnb recently launched the 'Describe what you’re looking for' AI search feature.
@@ -10,6 +21,50 @@ I'm exploring remote or part-time data analytics roles alongside my final year. 
 Best,
 Tanmay Kaper
 BSc Economics, NMIMS Mumbai '27 · linkedin.com/in/tanmay-k-a344b1226",0,,legacy_v1,2026-11-23T10:13:34+00:00
+ld_10c84ff061f8,APPROVED,QA passed,B,62,Joydeep Goswami,Engagement Manager,Capgemini,capgemini.com,joydeep.goswami@capgemini.com,CATCH_ALL,82,low,capgemini verkor gigafactory data,"Hi Joydeep,
+
+Capgemini is currently building the digital solutions for Verkor's low-carbon battery gigafactory in Dunkirk.
+
+I'm a final-year economics student at NMIMS and a consulting intern in KPMG's Technology & Data Analytics team. At KPMG, I mapped the integration architecture between SAP environments and Microsoft Data Fabric for a client's data modernisation.
+
+I'm looking for a remote or part-time internship alongside my final year. Would you be open to a short chat about whether your team ever takes on interns?
+
+Best,
+Tanmay Kaper
+BSc Economics, NMIMS Mumbai '27 · linkedin.com/in/tanmay-k-a344b1226",0,,search:serper,2026-11-24T23:59:45+00:00
+ld_171c09811531,APPROVED,QA passed,B,64,Ankur Khanna,Vice President,"Data, Analytics and AI",sas.com,ankur.khanna@sas.com,CATCH_ALL,81,low,"sas analytics, kpmg dashboards","Hi Ankur,
+
+SAS Viya focuses on integrating advanced analytics and governance for enterprise decision-making across complex industries.
+
+I am a final-year economics student at NMIMS Mumbai and a consulting intern in KPMG's Technology & Data Analytics team. At KPMG, I rebuilt C-suite dashboards in SAP Analytics Cloud for Sony Entertainment, making them over 80% more responsive, and owned the CEO dashboard data feeds.
+
+I am looking for a remote part-time internship in data analytics alongside my final year. Would you be open to a quick conversation, or is there someone else on your team better placed to ask?
+
+Best,
+Tanmay Kaper
+BSc Economics, NMIMS Mumbai '27 · linkedin.com/in/tanmay-k-a344b1226",0,,search:serper,2026-11-24T23:59:25+00:00
+ld_2b5246617cc7,APPROVED,QA passed,B,71,Vikas Yadav,Principal,Corporate Strategy & M&A,arcweb.com,vyadav@arcweb.com,CATCH_ALL,80,medium,yokohama pricing + arc strategy,"Hi Vikas,
+
+ARC provides technology market research and advisory for industrial, energy, and manufacturing firms adapting to automation and Industrial AI.
+
+I'm a final-year economics student at NMIMS Mumbai. As a data analyst intern at Yokohama Off-Highway Tyres, I analysed 10 competitor portfolios across 200+ SKUs to find pricing gaps for the strategy team.
+
+I'm looking for a remote strategy or market research internship alongside my studies. Would you be open to a short conversation to see if my background could be useful to your team?
+
+Best,
+Tanmay Kaper
+BSc Economics, NMIMS Mumbai '27 · linkedin.com/in/tanmay-k-a344b1226",0,,search:serper,2026-11-24T23:57:45+00:00
+ld_512710f267b6,APPROVED,QA passed,B,68,Amit Kapur,Vice President,"AI, Data and Analytics",nttdata.com,amit.kapur@nttdata.com,CATCH_ALL,82,low,"econ student, sony etl work","Hi Amit,
+
+I'm Tanmay Kaper, a final-year economics student at NMIMS Mumbai writing to learn if your AI, Data and Analytics team takes on remote or part-time interns.
+
+Currently, I work as a consulting intern in KPMG's Technology & Data Analytics group in Mumbai. During my time here, I built an automated Python ETL pipeline for Sony Entertainment's raw BARC viewership data, replacing a manual process. I'm looking to bring this technical focus to data analytics initiatives while finishing my degree.
+
+Is it worth a quick conversation, or is there someone else on your team better placed to ask?
+
+Best,
+Tanmay Kaper
+BSc Economics, NMIMS Mumbai '27 · linkedin.com/in/tanmay-k-a344b1226",0,,search:serper,2026-11-24T23:58:13+00:00
 ld_5a7568b9fed9,APPROVED,QA passed,B,73,Prerana Munipalli,Global Engagement Manager,HCLTech,hcltech.com,pmunipalli@hcltech.com,CATCH_ALL,75,medium,wealth mgmt ai study,"Hi Prerana,
 
 I saw HCLTech’s launch of the AI‑based synthetic research study for the global wealth‑management industry.
@@ -119,11 +174,6 @@ I'm looking to support Takshashila's strategy research on a part-time basis alon
 Best,
 Tanmay Kaper
 BSc Economics, NMIMS Mumbai '27 · linkedin.com/in/tanmay-k-a344b1226",0,,search:serper,2026-11-23T18:43:36+00:00
-ld_0c6feff7d25e,SCORED,68/100 → Tier B. Strongest: title_fit (title matches tier A ('chief data officer'); relevant function ('data')). Weakest: hook_quality (no specific public hook found — fall back to a role/company-leve,B,68,Moka Bhikshalu,Chief Data Officer,Business Transformation,thehackettgroup.com,mbhikshalu@thehackettgroup.com,CATCH_ALL,80,low,,,0,,search:serper,2026-11-24T15:06:51+00:00
-ld_10c84ff061f8,SCORED,62/100 → Tier B. Strongest: title_fit (title matches tier B ('engagement manager')). Weakest: hook_quality (no specific public hook found — fall back to a role/company-level angle).,B,62,Joydeep Goswami,Engagement Manager,Capgemini,capgemini.com,joydeep.goswami@capgemini.com,CATCH_ALL,82,low,,,0,,search:serper,2026-11-24T15:06:51+00:00
-ld_171c09811531,SCORED,64/100 → Tier B. Strongest: title_fit (title matches tier A ('president')). Weakest: signal (no signals found).,B,64,Ankur Khanna,Vice President,"Data, Analytics and AI",sas.com,ankur.khanna@sas.com,CATCH_ALL,81,low,,,0,,search:serper,2026-11-24T15:06:51+00:00
-ld_2b5246617cc7,SCORED,71/100 → Tier B. Strongest: title_fit (title matches tier B ('principal')). Weakest: signal (recent news; India (priority geography)).,B,71,Vikas Yadav,Principal,Corporate Strategy & M&A,arcweb.com,vyadav@arcweb.com,CATCH_ALL,80,medium,,,0,,search:serper,2026-11-24T15:06:51+00:00
-ld_512710f267b6,SCORED,68/100 → Tier B. Strongest: title_fit (title matches tier A ('president')). Weakest: hook_quality (no specific public hook found — fall back to a role/company-level angle).,B,68,Amit Kapur,Vice President,"AI, Data and Analytics",nttdata.com,amit.kapur@nttdata.com,CATCH_ALL,82,low,,,0,,search:serper,2026-11-24T15:06:51+00:00
 ld_00599a532c92,SENT,v1 status Sent,,,Radhika Sriram,Engagement Manager,McKinsey & Company,mckinsey.com,radhika_sriram@mckinsey.com,,,,Quick question on McKinsey data,"I saw McKinsey’s recent analysis on India’s digital economy, which emphasized the expanding role of data analytics in strategy.
 I am a BSc Economics student at NMIMS Mumbai, currently interning in KPMG’s Data & SAP department, and founder of a D2C apparel brand.
 My work involves Python data modelling and SAP analytics for live client strategy engagements, complementing my economics research and entrepreneurial experience.

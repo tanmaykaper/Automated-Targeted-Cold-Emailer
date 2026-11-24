@@ -3,6 +3,59 @@
 Approved drafts waiting for their send window, plus drafts that need a human look.
 Edit `state/suppression.txt` to block an address; set a lead's state in `state/leads.jsonl` to skip it.
 
+### Moka Bhikshalu — Chief Data Officer, Business Transformation
+`ld_0c6feff7d25e` · state **APPROVED** · email `mbhikshalu@thehackettgroup.com` **CATCH_ALL** (80, via catch_all)
+**Score 68/100 → Tier B** — title_fit 30/30 · company_fit 19/25 · deliverability 13/20 · signal 4/15 · hook_quality 2/10
+> 68/100 → Tier B. Strongest: title_fit (title matches tier A ('chief data officer'); relevant function ('data')). Weakest: hook_quality (no specific public hook found — fall back to a role/company-level angle).
+
+**Hook confidence:** low — no specific public hook found — fall back to a role/company-level angle
+**Company:** Business Transformation operates in the data and AI space, focusing on enterprise data, analytics, and helping scaling tech founders turn data into faster decisions [F1, F2, F3].
+**Role scope:** As Chief Data Officer, Moka Bhikshalu likely owns the overarching data engineering, analytics, and AI product strategy for the enterprise [F1, F3].
+
+**Verified facts**
+- F1 [person/role] Chief Data Officer | Data & AI — [source](https://www.linkedin.com/posts/moka-director-data-genaiml_data-engineering-and-analytics-as-the-backbone-activity-7422326256081354753-KHk1)
+- F2 [person/business] Fractional CDO | Helping Scaling Tech founders turn data into faster decisions | Founder @ — [source](https://www.linkedin.com/posts/moka-director-data-genaiml_data-engineering-and-analytics-as-the-backbone-activity-7422326256081354753-KHk1)
+- F3 [person/role] Chief Data & AI Officer | Enterprise Data, AI Product — [source](https://www.linkedin.com/posts/moka-director-data-genaiml_implementing-a-lake-house-for-scalable-analytics-activity-7417117366670553088-OOGN)
+
+**Angles**
+- Given your focus on data engineering and analytics as the backbone for scaling tech founders, you might appreciate hands-on support with automated ETL pipelines and dashboard optimization [F2]. (facts: F2; proof: kpmg_sony_etl)
+
+**Email 1** (87 words) — subject: `python etl and enterprise data`
+```text
+Hi Moka,
+
+I noticed your focus on helping scaling tech founders turn enterprise data into faster decisions.
+
+I'm a final-year economics student at NMIMS Mumbai and currently a Consulting Intern in KPMG's Technology & Data Analytics team. There, I built an automated Python ETL pipeline for Sony Entertainment's raw BARC viewership data, replacing a manual process.
+
+I'm looking for a remote or part-time analytics internship alongside my final year. Would you be open to a quick chat to see if my background could be helpful to your team?
+
+Best,
+Tanmay Kaper
+BSc Economics, NMIMS Mumbai '27 · linkedin.com/in/tanmay-k-a344b1226
+```
+
+**Follow-up 1** (47 words) — subject: `Re: python etl and enterprise data`
+```text
+Hi Moka,
+
+On the reporting side at KPMG, I also rebuilt C-suite dashboards in SAP Analytics Cloud for Sony Entertainment, making them over 80% more responsive, and owned the CEO dashboard data feeds. This might be relevant for your analytics stack. Is it worth a brief conversation?
+
+Tanmay
+```
+
+**Follow-up 2** (34 words) — subject: `Re: python etl and enterprise data`
+```text
+Hi Moka,
+
+If this isn't a fit right now, no worries at all — I won't keep emailing. If there's someone else on your team handling intern hiring, I'd appreciate you pointing me their way.
+
+Tanmay
+```
+QA: PASS after 1 attempt(s)
+
+---
+
 ### Guillaume Guy — Technical Team Lead, Airbnb
 `ld_102fd49ea1d7` · state **APPROVED** · email `guillaume.guy@airbnb.com` **VERIFIED** (85, via provider)
 **Score 68/100 → Tier B** — title_fit 15/30 · company_fit 19/25 · deliverability 20/20 · signal 8/15 · hook_quality 6/10
@@ -50,6 +103,222 @@ Tanmay
 Hi Guillaume,
 
 If taking on a remote intern isn't a fit right now, no worries at all — I won't keep emailing. If there's someone else on your technical team better placed to speak with, I'd appreciate a quick pointer.
+
+Tanmay
+```
+QA: PASS after 1 attempt(s)
+
+---
+
+### Joydeep Goswami — Engagement Manager, Capgemini
+`ld_10c84ff061f8` · state **APPROVED** · email `joydeep.goswami@capgemini.com` **CATCH_ALL** (82, via catch_all)
+**Score 62/100 → Tier B** — title_fit 24/30 · company_fit 19/25 · deliverability 13/20 · signal 4/15 · hook_quality 2/10
+> 62/100 → Tier B. Strongest: title_fit (title matches tier B ('engagement manager')). Weakest: hook_quality (no specific public hook found — fall back to a role/company-level angle).
+
+**Hook confidence:** low — no specific public hook found — fall back to a role/company-level angle
+**Company:** Capgemini is a global firm that helps businesses navigate digital transformation by leveraging AI, cloud, and data expertise across the entire strategy and operations lifecycle. They also engage in large-scale industrial projects, such as developing digital solutions for sustainable battery manufacturing.
+**Role scope:** As an Engagement Manager, Joydeep Goswami likely oversees complex client relationships, manages project delivery teams, and ensures that consulting engagements effectively integrate technical solutions with strategic business outcomes.
+
+**Verified facts**
+- F1 [company/business] Capgemini is collaborating with Verkor to develop digital solutions for a low-carbon battery gigafactory in Dunkirk. — [source](https://capgemini.com/)
+- F2 [company/business] Capgemini helps businesses imagine their future and make it real with AI, technology and people. — [source](https://capgemini.com/about-us)
+- F3 [company/business] We address the entire breadth of business needs, from strategy and design to managing operations and engineering, drawing on deep industry knowledge and technical expertise in cloud, data, artificial intelligence, connectivity, software, digital engineering, and platforms.​ — [source](https://capgemini.com/about-us)
+- F4 [company/other] The Capgemini Research Institute has been ranked number one globally six consecutive times by Source Global Research. — [source](https://capgemini.com/about-us)
+
+**Angles**
+- Given Capgemini's focus on large-scale industrial digitalization like the Verkor gigafactory project, your experience automating data pipelines and managing complex SAP-to-Data Fabric integrations would be immediately relevant to supporting their data-heavy consulting engagements. (facts: F1, F3; proof: kpmg_sap_fabric)
+- Capgemini places a high premium on industry-leading research, and your work analyzing EV policy and competitive pricing demonstrates the same analytical rigor that defines the Capgemini Research Institute’s global reputation. (facts: F4; proof: fame2_research)
+
+**Email 1** (80 words) — subject: `capgemini verkor gigafactory data`
+```text
+Hi Joydeep,
+
+Capgemini is currently building the digital solutions for Verkor's low-carbon battery gigafactory in Dunkirk.
+
+I'm a final-year economics student at NMIMS and a consulting intern in KPMG's Technology & Data Analytics team. At KPMG, I mapped the integration architecture between SAP environments and Microsoft Data Fabric for a client's data modernisation.
+
+I'm looking for a remote or part-time internship alongside my final year. Would you be open to a short chat about whether your team ever takes on interns?
+
+Best,
+Tanmay Kaper
+BSc Economics, NMIMS Mumbai '27 · linkedin.com/in/tanmay-k-a344b1226
+```
+
+**Follow-up 1** (49 words) — subject: `Re: capgemini verkor gigafactory data`
+```text
+Hi Joydeep,
+
+Outside of architecture mapping, I built an automated Python ETL pipeline for Sony Entertainment's raw BARC viewership data at KPMG, replacing a manual process. Handling complex datasets is central to modern consulting engagements. Is it worth a quick conversation, or is someone else better placed to ask?
+
+Tanmay
+```
+
+**Follow-up 2** (33 words) — subject: `Re: capgemini verkor gigafactory data`
+```text
+Hi Joydeep,
+
+If this isn't a fit right now, no worries — I won't keep emailing. If there's someone else on your team who manages intern hiring, I'd be grateful for a quick pointer.
+
+Tanmay
+```
+QA: PASS after 1 attempt(s)
+
+---
+
+### Ankur Khanna — Vice President, Data, Analytics and AI
+`ld_171c09811531` · state **APPROVED** · email `ankur.khanna@sas.com` **CATCH_ALL** (81, via catch_all)
+**Score 64/100 → Tier B** — title_fit 30/30 · company_fit 19/25 · deliverability 13/20 · signal 0/15 · hook_quality 2/10
+> 64/100 → Tier B. Strongest: title_fit (title matches tier A ('president')). Weakest: signal (no signals found).
+
+**Hook confidence:** low — no specific public hook found — fall back to a role/company-level angle
+**Company:** SAS provides a cloud-native data and AI platform called SAS Viya that integrates advanced analytics and governance to support large-scale, trusted decision-making. Their solutions serve complex industries including financial services, health care, and the public sector.
+**Role scope:** As a Vice President in Data, Analytics and AI, Ankur likely owns the strategic direction, product adoption, and market growth of AI and analytics solutions for major enterprise clients.
+
+**Verified facts**
+- F1 [company/business] SAS Viya is a cloud-native data and AI platform designed to help organizations make trusted, confident decisions at scale. — [source](https://sas.com/about)
+- F2 [company/business] SAS Viya integrates advanced analytics, explainable AI, and governance to manage the full data and AI lifecycle with transparency and compliance. — [source](https://sas.com/about)
+- F3 [company/business] SAS utilizes an industry-first innovation approach to deliver meaningful impact in complex business environments. — [source](https://sas.com/about)
+- F4 [company/business] SAS provides large-scale decision-making support to leaders across major industries, including financial services, health care, and the public sector. — [source](https://sas.com/about)
+
+**Angles**
+- Given your focus on supporting data and AI lifecycle management for large-scale clients, my experience automating complex ETL pipelines and rebuilding responsive C-suite dashboards at KPMG demonstrates a high degree of technical proficiency in creating scalable analytics solutions. (facts: F1, F4; proof: kpmg_sac_dashboards)
+- Since SAS emphasizes an industry-first innovation approach for complex environments, my work identifying pricing gaps in competitive markets at Yokohama and evaluating startup viability as a VC aligns with your need for data-driven strategic research. (facts: F3, F4; proof: yokohama_pricing)
+
+**Email 1** (97 words) — subject: `sas analytics, kpmg dashboards`
+```text
+Hi Ankur,
+
+SAS Viya focuses on integrating advanced analytics and governance for enterprise decision-making across complex industries.
+
+I am a final-year economics student at NMIMS Mumbai and a consulting intern in KPMG's Technology & Data Analytics team. At KPMG, I rebuilt C-suite dashboards in SAP Analytics Cloud for Sony Entertainment, making them over 80% more responsive, and owned the CEO dashboard data feeds.
+
+I am looking for a remote part-time internship in data analytics alongside my final year. Would you be open to a quick conversation, or is there someone else on your team better placed to ask?
+
+Best,
+Tanmay Kaper
+BSc Economics, NMIMS Mumbai '27 · linkedin.com/in/tanmay-k-a344b1226
+```
+
+**Follow-up 1** (44 words) — subject: `Re: sas analytics, kpmg dashboards`
+```text
+Hi Ankur,
+
+At KPMG, I also built an automated Python ETL pipeline for Sony Entertainment's raw BARC viewership data, replacing a manual workflow. Clean data ingestion is usually the first hurdle before running enterprise analytics platforms. Is it worth sending over a one-page CV?
+
+Tanmay
+```
+
+**Follow-up 2** (39 words) — subject: `Re: sas analytics, kpmg dashboards`
+```text
+Hi Ankur,
+
+If taking on a remote intern isn't a fit right now, no worries at all — I won't keep emailing. If there's anyone else on your data and AI team I should contact instead, please let me know.
+
+Tanmay
+```
+QA: PASS after 1 attempt(s)
+
+---
+
+### Vikas Yadav — Principal, Corporate Strategy & M&A
+`ld_2b5246617cc7` · state **APPROVED** · email `vyadav@arcweb.com` **CATCH_ALL** (80, via catch_all)
+**Score 71/100 → Tier B** — title_fit 24/30 · company_fit 19/25 · deliverability 13/20 · signal 9/15 · hook_quality 6/10
+> 71/100 → Tier B. Strongest: title_fit (title matches tier B ('principal')). Weakest: signal (recent news; India (priority geography)).
+
+**Hook confidence:** medium — company-level signal (initiative: F1); no person-specific hook
+**Company:** ARC Advisory Group is a global technology market research and advisory firm founded in 1986 that specializes in industrial AI, digital transformation, and cybersecurity for industrial, energy, and manufacturing firms. F2, F3, F4
+**Role scope:** As a Principal in Corporate Strategy & M&A at ARC, Vikas Yadav likely owns evaluation of market opportunities, strategic growth initiatives, and research-driven advisory alignment with industrial technology trends.
+
+**Verified facts**
+- F1 [company/initiative] Accelerating Industrial Innovation with AI, Digital Transformation & Deep Domain Expertise. — [source](https://arcweb.com/about)
+- F2 [company/business] ARC has helped top industrial, energy, and manufacturing firms navigate tech disruption and build smarter, more autonomous operations for four decades. — [source](https://arcweb.com/about)
+- F3 [company/business] Founded in 1986, ARC is a global advisory firm specializing in Industrial AI, digital transformation, operational excellence, cybersecurity, and next‑generation industrial technologies. — [source](https://arcweb.com/about)
+- F4 [company/business] ARC Advisory Group is the leading technology market research firm for industry, manufacturing, energy and infrastructure. — [source](https://arcweb.com/)
+
+**Angles**
+- Given ARC's role as a leading market research firm helping industrial and manufacturing firms navigate tech disruption, my experience analyzing competitor portfolios and pricing gaps for a strategy team at Yokohama Off-Highway Tyres demonstrates my capability to support rigorous industry and market research. F2, F4 (facts: F2, F4; proof: yokohama_pricing)
+
+**Email 1** (86 words) — subject: `yokohama pricing + arc strategy`
+```text
+Hi Vikas,
+
+ARC provides technology market research and advisory for industrial, energy, and manufacturing firms adapting to automation and Industrial AI.
+
+I'm a final-year economics student at NMIMS Mumbai. As a data analyst intern at Yokohama Off-Highway Tyres, I analysed 10 competitor portfolios across 200+ SKUs to find pricing gaps for the strategy team.
+
+I'm looking for a remote strategy or market research internship alongside my studies. Would you be open to a short conversation to see if my background could be useful to your team?
+
+Best,
+Tanmay Kaper
+BSc Economics, NMIMS Mumbai '27 · linkedin.com/in/tanmay-k-a344b1226
+```
+
+**Follow-up 1** (43 words) — subject: `Re: yokohama pricing + arc strategy`
+```text
+Hi Vikas,
+
+At KPMG, I rebuilt C-suite dashboards in SAP Analytics Cloud for Sony Entertainment, making them over 80% more responsive and managing CEO dashboard data feeds. If your team needs extra research or analytics capacity, would it be worth a brief call?
+
+Tanmay
+```
+
+**Follow-up 2** (31 words) — subject: `Re: yokohama pricing + arc strategy`
+```text
+Hi Vikas,
+
+If a part-time intern isn't a fit right now, no worries — I won't keep emailing. Alternatively, if someone else on your team handles strategy interns, I'd appreciate any direction.
+
+Tanmay
+```
+QA: PASS after 1 attempt(s)
+
+---
+
+### Amit Kapur — Vice President, AI, Data and Analytics
+`ld_512710f267b6` · state **APPROVED** · email `amit.kapur@nttdata.com` **CATCH_ALL** (82, via catch_all)
+**Score 68/100 → Tier B** — title_fit 30/30 · company_fit 19/25 · deliverability 13/20 · signal 4/15 · hook_quality 2/10
+> 68/100 → Tier B. Strongest: title_fit (title matches tier A ('president')). Weakest: hook_quality (no specific public hook found — fall back to a role/company-level angle).
+
+**Hook confidence:** low — no specific public hook found — fall back to a role/company-level angle
+**Company:** Amit Kapur serves as a Vice President within an AI, Data and Analytics division.
+**Role scope:** A Vice President in this capacity likely owns the strategic direction, data governance, and operational scaling of large-scale analytics initiatives across the organization.
+
+**Verified facts**
+- (none)
+
+**Angles**
+- Given your leadership in data and analytics, my technical background in building automated ETL pipelines for enterprise clients like Sony at KPMG demonstrates an ability to contribute immediately to complex data infrastructure projects. (facts: -; proof: kpmg_sony_etl)
+- My experience at KPMG managing data feeds for C-suite dashboards and modernizing SAP architectures aligns with the high-stakes reporting and integration challenges typically managed at the Vice President level. (facts: -; proof: kpmg_sac_dashboards)
+
+**Email 1** (98 words) — subject: `econ student, sony etl work`
+```text
+Hi Amit,
+
+I'm Tanmay Kaper, a final-year economics student at NMIMS Mumbai writing to learn if your AI, Data and Analytics team takes on remote or part-time interns.
+
+Currently, I work as a consulting intern in KPMG's Technology & Data Analytics group in Mumbai. During my time here, I built an automated Python ETL pipeline for Sony Entertainment's raw BARC viewership data, replacing a manual process. I'm looking to bring this technical focus to data analytics initiatives while finishing my degree.
+
+Is it worth a quick conversation, or is there someone else on your team better placed to ask?
+
+Best,
+Tanmay Kaper
+BSc Economics, NMIMS Mumbai '27 · linkedin.com/in/tanmay-k-a344b1226
+```
+
+**Follow-up 1** (49 words) — subject: `Re: econ student, sony etl work`
+```text
+Hi Amit,
+
+At KPMG, I also rebuilt C-suite dashboards in SAP Analytics Cloud for Sony Entertainment, making them over 80% more responsive, and owned the CEO dashboard data feeds. I'm keen to bring similar reporting and dashboard support to your team. Would you be open to a short chat?
+
+Tanmay
+```
+
+**Follow-up 2** (37 words) — subject: `Re: econ student, sony etl work`
+```text
+Hi Amit,
+
+If this isn't a fit right now, no worries at all — I won't keep emailing. If there's anyone else on your analytics team who handles intern recruitment, I'd appreciate you pointing me in their direction.
 
 Tanmay
 ```
