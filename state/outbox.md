@@ -57,6 +57,64 @@ QA: PASS after 1 attempt(s)
 
 ---
 
+### Prerana Munipalli — Global Engagement Manager, HCLTech
+`ld_5a7568b9fed9` · state **APPROVED** · email `pmunipalli@hcltech.com` **CATCH_ALL** (75, via catch_all)
+**Score 73/100 → Tier B** — title_fit 24/30 · company_fit 19/25 · deliverability 12/20 · signal 12/15 · hook_quality 6/10
+> 73/100 → Tier B. Strongest: title_fit (title matches tier B ('engagement manager')). Weakest: deliverability (catch-all domain, confidence 75).
+
+**Hook confidence:** medium — company-level signal (news: F3); no person-specific hook
+**Company:** HCLTech is a global IT services and technology company with over 230,000 people in 60 countries, delivering cutting-edge AI, engineering, and cloud solutions to top enterprises.
+**Role scope:** As Global Engagement Manager, likely owns or influences team priorities and junior hiring.
+
+**Verified facts**
+- F1 [company/business] HCLTech is a global IT services and technology company with over 230,000 people in 60 countries, delivering cutting-edge AI, engineering, and cloud solutions to top enterprises. — [source](https://hcltech.com/)
+- F2 [company/business] We’re a global technology company supercharging progress for our clients and partners, our people, the communities in which we operate and the planet we call home. — [source](https://hcltech.com/about)
+- F3 [company/news] HCLTech Pulse is designed for organizations with enterprise-scale ambitions that have historically had to stitch together niche providers across ... — [source](https://www.hcltech.com/en-us/press-releases/hcltech-launches-hcltech-pulse-accelerate-ai-led-transformation-fast-scaling)
+- F4 [company/launch] HCLTech launches first-of-its-kind AI-based synthetic research study for the global wealth management industry. — [source](https://www.hcltech.com/press-releases/hcltech-launches-first-its-kind-ai-based-synthetic-research-study-global-wealth)
+- F5 [company/news] HCLTech is a global technology company, home to more than 223,000 people across 60 countries, delivering industry-leading capabilities centered around AI, ... — [source](https://www.hcltech.com/en-us/press-releases/hcltech-launches-full-stack-ai-offering-powered-new-ai-data-center-investment)
+- F6 [company/news] HCLTech Pulse extends the company's full portfolio, long trusted by the world's largest enterprises, with a delivery model purpose-built for ... — [source](https://www.prnewswire.com/apac/news-releases/hcltech-launches-hcltech-pulse-to-accelerate-ai-led-transformation-for-fast-scaling-enterprises-302881736.html)
+- F7 [company/launch] HCLTech has launched a dedicated business unit designed to help fast-scaling enterprises with annual revenues between $500 million and $5 ... — [source](https://www.linkedin.com/posts/swadhin_hcltech-launches-hcltech-pulse-to-accelerate-activity-7506294557714640896-BXHd)
+- F8 [person/role] View profile for Prerana Munipalli · Prerana Munipalli. — [source](https://www.linkedin.com/posts/prerana-munipalli2030_dukefuqua-strategy-mqm-activity-7199272586944397312-4cGi)
+
+**Angles**
+- In a role like Global Engagement Manager at HCLTech, analyst capacity that turns data into decisions quickly is usually welcome. (facts: F1; proof: -)
+
+**Email 1** (72 words) — subject: `wealth mgmt ai study`
+```text
+Hi Prerana,
+
+I saw HCLTech’s launch of the AI‑based synthetic research study for the global wealth‑management industry.
+
+At KPMG I built an automated Python ETL pipeline for Sony Entertainment’s raw BARC viewership data, replacing a manual process.
+
+I’m looking for a remote, part‑time internship in data analytics and would appreciate your view on whether HCLTech has openings that fit. Would you be open to a short chat about it?
+
+Best,
+Tanmay Kaper
+BSc Economics, NMIMS Mumbai '27 · linkedin.com/in/tanmay-k-a344b1226
+```
+
+**Follow-up 1** (47 words) — subject: `Re: wealth mgmt ai study`
+```text
+Hi Prerana,
+
+I noticed HCLTech Pulse’s delivery model built for enterprise‑scale ambitions (F6). At KPMG I mapped the integration architecture between SAP environments and Microsoft Data Fabric for a client’s data modernisation (kpmg_sap_fabric). Could that experience be useful for your team’s work on Pulse?
+
+Tanmay
+```
+
+**Follow-up 2** (32 words) — subject: `Re: wealth mgmt ai study`
+```text
+Hi Prerana,
+
+Thanks for considering. If a remote internship isn’t a fit, no worries—happy to stop reaching out. Could you point me to someone else at HCLTech who handles intern recruitment?
+
+Tanmay
+```
+QA: PASS after 1 attempt(s)
+
+---
+
 ### Kushal Raja — Partner, Bain & Company
 `ld_d337ebc0aec3` · state **APPROVED** · email `kushal.raja@bain.com` **CATCH_ALL** (83, via catch_all)
 **Score 74/100 → Tier B** — title_fit 30/30 · company_fit 25/25 · deliverability 13/20 · signal 4/15 · hook_quality 2/10
@@ -102,64 +160,6 @@ Tanmay
 Hi Kushal,
 
 If Bain isn't taking on part-time interns at the moment, no worries — I won't keep emailing. If there is a colleague who oversees junior hiring, I would appreciate a quick recommendation.
-
-Tanmay
-```
-QA: PASS after 1 attempt(s)
-
----
-
-### Max Reinertsen — Head of Strategy & Ops, Chief of Staff to CEO, Artyc
-`ld_d44b28533ee7` · state **APPROVED** · email `max@shipartyc.com` **CATCH_ALL** (75, via catch_all)
-**Score 75/100 → Tier B** — title_fit 30/30 · company_fit 19/25 · deliverability 12/20 · signal 8/15 · hook_quality 6/10
-> 75/100 → Tier B. Strongest: title_fit (title matches tier A ('ceo'); relevant function ('strategy')). Weakest: signal (growth signal (funding/hiring/expansion/launch)).
-
-**Hook confidence:** medium — company-level signal (launch: F1); no person-specific hook
-**Company:** Artyc (industry unknown)
-**Role scope:** As Head of Strategy & Ops, Chief of Staff to CEO, likely owns or influences team priorities and junior hiring.
-
-**Verified facts**
-- F1 [company/launch] Artyc PBC, a California-based cold chain startup, announced today the launch of Artyc's Medstow Mini, a small battery-powered cooling ... — [source](https://www.tassoinc.com/press-releases/partner-news-artyc-launches-medstow-mini-for-temperature-stable-blood-sample-collection-and-delivery)
-- F2 [company/launch] PRNewswire/ -- Artyc PBC, a California-based cold chain startup, announced today the launch of Artyc's Medstow Mini, a small battery-powered ... — [source](https://www.prnewswire.com/news-releases/artyc-launches-medstow-mini-for-temperature-stable-blood-sample-collection-and-delivery-301924056.html)
-- F3 [company/launch] Artyc Launches Medstow Mini for Temperature Stable Blood Sample ... — [source](https://www.linkedin.com/posts/hannah-sieber_artyc-launches-medstow-mini-for-temperature-activity-7107416101357031425--4OA?trk=public_profile_like_view)
-- F4 [company/launch] Artyc PBC launched the Medstow Mini, a reusable battery-powered cooling container that stabilizes and monitors temperature for at-home and clinical blood sample ... — [source](https://seattleflow.org/article/partner-news-artyc-launches-medstow-mini-for-temperature-stable)
-- F5 [company/launch] Sep 12, 2023, 13:00 ET Artyc Launches Medstow Mini for Temperature Stable Blood Sample Collection and Delivery. — [source](https://www.prnewswire.com/news/artyc-pbc/)
-- F6 [company/news] Artyc, operating under the website shipartyc.com, is a startup that provides temperature-controlled transportation services. — [source](https://dealroom.co/companies/artyc/)
-- F7 [company/news] Artyc specializes in advanced, battery-powered coolers for the secure and ... — [source](https://clineco.io/companies/artyc)
-- F8 [company/news] Modernizing the cold chain @ Artyc | Building ... — [source](https://www.linkedin.com/posts/nicolas-castrillon_we-keep-racking-up-wins-at-artyc-support-activity-7272661633443753984-6K4a)
-
-**Angles**
-- In a role like Head of Strategy & Ops, Chief of Staff to CEO at Artyc, analyst capacity that turns data into decisions quickly is usually welcome. (facts: F1; proof: -)
-
-**Email 1** (75 words) — subject: `medstow mini, strategy analytics`
-```text
-Hi Max,
-
-Artyc launched the Medstow Mini to stabilize and monitor temperatures for blood sample delivery.
-
-I'm a final-year economics student at NMIMS Mumbai available for remote part-time work in strategy or analytics. As a data analyst intern at Yokohama Off-Highway Tyres I analysed 10 competitor portfolios across 200+ SKUs to find pricing gaps for the strategy team.
-
-Would it be useful if I sent over a one-page CV to see if there's a fit?
-
-Best,
-Tanmay Kaper
-BSc Economics, NMIMS Mumbai '27 · linkedin.com/in/tanmay-k-a344b1226
-```
-
-**Follow-up 1** (43 words) — subject: `Re: medstow mini, strategy analytics`
-```text
-Hi Max,
-
-On the analytics side, at KPMG I built an automated Python ETL pipeline for Sony Entertainment's raw BARC viewership data, replacing a manual process. I can bring that same data execution to Artyc's operational workflows. Is this worth a brief conversation?
-
-Tanmay
-```
-
-**Follow-up 2** (36 words) — subject: `Re: medstow mini, strategy analytics`
-```text
-Hi Max,
-
-If this isn't a fit right now, no worries — I won't keep emailing. If there is someone else on the strategy or ops team better placed to talk to, I'd appreciate a quick pointer.
 
 Tanmay
 ```
@@ -326,6 +326,61 @@ If you don't have capacity for a remote intern right now, no worries — I won't
 Tanmay
 ```
 QA: FAIL after 2 attempt(s) — unsupported claim: The claim 'your talk with IIIT Hyderabad' misinterprets the facts; Sridhar Viswanathan is affiliated with Bank of America, while S Bapi Raju is from IIIT Hyderabad (they were two separate invited speakers).
+
+---
+
+### Punitha K K — Director, Opsera
+`ld_5faa60c125dd` · state **NEEDS_REVIEW** · email `punitha@opsera.ai` **CATCH_ALL** (75, via catch_all)
+**Score 73/100 → Tier B** — title_fit 24/30 · company_fit 19/25 · deliverability 12/20 · signal 12/15 · hook_quality 6/10
+> 73/100 → Tier B. Strongest: title_fit (title matches tier B ('director')). Weakest: deliverability (catch-all domain, confidence 75).
+
+**Hook confidence:** medium — company-level signal (launch: F1); no person-specific hook
+**Company:** Opsera provides an AI-native software factory platform and headless DevOps solutions to streamline software delivery and autonomous development workflows.
+**Role scope:** As a Director at Opsera, Punitha K K likely owns regional operations, delivery, or strategic execution for the company's initiatives.
+
+**Verified facts**
+- F1 [company/launch] Opsera Relaunches as an AI-Native Software Factory — [source](https://sdtimes.com/ai/opsera-relaunches-as-an-ai-native-software-factory/)
+- F2 [company/launch] Opsera Launches Industry's First Headless DevOps Platform for Salesforce Agentforce — [source](https://www.prnewswire.com/news-releases/opsera-launches-industrys-first-headless-devops-platform-for-salesforce-agentforce-302878470.html)
+- F3 [company/business] Opsera and Cursor Partner to Embed Autonomous AI Agents Directly into AI-SDLC Workflows for Next-gen AI-Driven Development — [source](https://www.prnewswire.com/news-releases/opsera-and-cursor-partner-to-embed-autonomous-ai-agents-directly-into-ai-sdlc-workflows-for-next-gen-ai-driven-development-302762277.html)
+- F4 [company/launch] Opsera Launches VIBEshift to Move AI-Generated Applications from Prototype to Production — [source](https://www.prnewswire.com/news-releases/opsera-launches-vibeshift-to-move-ai-generated-applications-from-prototype-to-production-with-a-single-command-302796099.html)
+- F5 [company/launch] Opsera announced advanced reasoning AI and autonomous remediation agents for Agentic DevOps, with tool-agnostic integration across 150+ — [source](https://opsera.ai/newsroom/opsera-launches-new-advanced-reasoning-ai-and-autonomous-remediation-agents-for-agentic-devops)
+
+**Angles**
+- Given Opsera's recent expansion into AI-native software factories and advanced reasoning AI for DevOps, data-driven analysis and pipeline automation are critical for scaling operations. (facts: F1, F5; proof: kpmg_sony_etl)
+
+**Email 1** (71 words) — subject: `opsera ai-native relaunch`
+```text
+Hi Punitha,
+
+Opsera relaunched as an AI‑native software factory.
+
+Scaling AI‑native workflows often requires reliable data pipelines. At KPMG (Technology & Data Analytics), I built an automated Python ETL pipeline for Sony Entertainment's raw BARC viewership data, replacing a manual process.
+
+I'm looking for a remote or part‑time internship in strategy or data analytics with Opsera. Would a short chat about how your team brings on interns be useful?
+
+Best,
+Tanmay Kaper
+BSc Economics, NMIMS Mumbai '27 · linkedin.com/in/tanmay-k-a344b1226
+```
+
+**Follow-up 1** (56 words) — subject: `Re: opsera ai-native relaunch`
+```text
+Hi Punitha,
+
+Opsera announced advanced reasoning AI and autonomous remediation agents for Agentic DevOps (F5). At KPMG I rebuilt C‑suite dashboards in SAP Analytics Cloud for Sony Entertainment, making them over 80% more responsive and handling the CEO dashboard data feeds. Do you see a role for such analytics work in your AI‑native platform?
+
+Tanmay
+```
+
+**Follow-up 2** (27 words) — subject: `Re: opsera ai-native relaunch`
+```text
+Hi Punitha,
+
+If a remote internship isn’t a fit, no worries—I'll stop emailing. Could you point me to anyone else at Opsera who handles internship programs?
+
+Tanmay
+```
+QA: FAIL after 2 attempt(s) — banned phrase: 'as an ai'
 
 ---
 
