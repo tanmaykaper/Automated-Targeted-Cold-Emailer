@@ -52,3 +52,34 @@ def test_criteria_covers_postmaster_and_excludes_delay():
 
     G().check_lead(_lead())
     assert 'FROM "postmaster"' in seen[-1] and 'NOT SUBJECT "Delay"' in seen[-1]
+
+
+# ── follow-up rules ─────────────────────────────────────────────────────────
+from outreach.mailer import followup_due  # noqa: E402
+from outreach.models import EmailDraft, EmailMessage  # noqa: E402
+from outreach.settings import load_settings  # noqa: E402
+
+
+def _sent_lead(days_ago: float):
+    msgs = [EmailMessage(step=0, subject="hello", body="b"), EmailMessage(step=1, subject="Re: hello", body="b"),
+            EmailMessage(step=2, subject="Re: hello", body="b")]
+    return Lead(id="f", state=LeadState.SENT, email="a@acme.com", person=Person(full_name="A B"),
+                draft=EmailDraft(messages=msgs),
+                sends=[SendRecord(step=0, sent_at=utcnow() - timedelta(days=days_ago), subject="hello")])
+
+
+def test_first_followup_waits_one_week():
+    s = load_settings()
+    assert followup_due(_sent_lead(6.5), s, utcnow()) is None
+    assert followup_due(_sent_lead(7.1), s, utcnow()) == 1
+
+
+def test_confirmed_sent_requires_opener_in_sent_folder():
+    class G(Gmail):
+        def __init__(self, hit): self.hit = hit; self.q = []
+        def _search(self, mb, c): self.q.append((mb, c)); return [b"1"] if self.hit else []
+
+    yes, no = G(True), G(False)
+    assert yes.confirmed_sent(_sent_lead(8)) is True
+    assert no.confirmed_sent(_sent_lead(8)) is False
+    assert yes.q[0][0] == "[Gmail]/Sent Mail" and 'SUBJECT "hello"' in yes.q[0][1]

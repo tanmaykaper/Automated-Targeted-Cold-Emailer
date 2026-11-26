@@ -384,6 +384,9 @@ def stage_send(ctx: Context) -> None:
             st.outcomes["dry_run"] += 1
             sent_now += 1
             continue
+        if step > 0 and not ctx.gmail.confirmed_sent(lead):
+            st.outcomes["followup_unconfirmed_original"] += 1
+            continue
         try:
             since = (lead.draft.created_at - timedelta(days=1))
             if ctx.gmail.already_sent(lead.email, msg.subject, step, since):

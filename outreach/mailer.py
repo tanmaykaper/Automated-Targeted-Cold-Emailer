@@ -145,6 +145,23 @@ class Gmail:
         # step 0: any hit means sent. step n: n-1 earlier "Re:" messages are expected.
         return len(hits) >= max(step, 1)
 
+    def confirmed_sent(self, lead: Lead) -> bool:
+        """True only if Gmail's Sent folder holds the opening email to this lead.
+
+        Follow-ups are threaded replies; never send one unless the original is provably in Sent.
+        IMAP errors count as unconfirmed."""
+        first = next((s for s in sorted(lead.sends, key=lambda s: s.sent_at) if s.step == 0), None)
+        opener = lead.draft.step(0) if lead.draft else None
+        subject = (first.subject if first and first.subject else (opener.subject if opener else ""))
+        if not first or not subject:
+            return False
+        subj = subject.replace('"', "").replace("\\", "")[:80]
+        since = (first.sent_at - timedelta(days=1)).strftime("%d-%b-%Y")
+        try:
+            return bool(self._search("[Gmail]/Sent Mail", f'(TO "{lead.email}" SUBJECT "{subj}" SINCE {since})'))
+        except RuntimeError:
+            return False
+
     # ── SMTP ────────────────────────────────────────────────────────────────
     def send(self, lead: Lead, step: int) -> SendRecord:
         msg_spec = lead.draft.step(step)

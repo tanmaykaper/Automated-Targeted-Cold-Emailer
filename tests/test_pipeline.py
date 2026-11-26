@@ -160,7 +160,7 @@ def test_followup_schedule(settings):
     now = utcnow()
     lead = Lead(id="x", state=LeadState.SENT, person=Person(full_name="A B"),
                 draft=EmailDraft(messages=[EmailMessage(step=i, subject="s", body="b") for i in range(3)]),
-                sends=[SendRecord(step=0, sent_at=now - timedelta(days=5))])
+                sends=[SendRecord(step=0, sent_at=now - timedelta(days=8))])
     assert followup_due(lead, settings, now) == 1
     lead.sends.append(SendRecord(step=1, sent_at=now - timedelta(days=2)))
     assert followup_due(lead, settings, now) is None

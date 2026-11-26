@@ -59,7 +59,10 @@ def company_type(lead: Lead) -> str:
         return "tier1"
     if _has(blob, RESEARCH_MARKERS):
         return "research"
-    if re.search(r"series [a-e]|seed|pre-seed|venture[- ]backed|raised|y combinator|funding", blob + " " + lead.company.funding.lower()):
+    if re.search(r"series [a-e]|seed|pre-seed|venture[- ]backed|raised|y combinator|\byc\b|funding|startup|early[- ]stage",
+                 blob + " " + lead.company.funding.lower()):
+        return "startup"
+    if (lead.vertical or "").startswith("STARTUP_"):
         return "startup"
     return "corporate"
 

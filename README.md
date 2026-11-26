@@ -19,8 +19,8 @@ inside each recipient's local business hours. **Dry run is the default.**
  research  company site + news/signals + person search → facts with verbatim evidence, checked against source
  score     title 30 · company 25 · deliverability 20 · signal 15 · hook 10 → Tier A ≥80 / B ≥60 / C dropped
  draft     65–110 word email + 2 follow-ups → lint + critic → one rewrite → APPROVED or NEEDS_REVIEW
- send      Mon–Thu 09:30–11:30 / 14:00–16:00 recipient-local, caps 8/day · 30/week · 4/tick, human-like gaps,
-           Gmail Sent-folder double-send guard, IMAP reply/bounce/opt-out detection before follow-ups
+ send      Mon–Thu 09:30–11:30 / 14:00–16:00 recipient-local, caps 16/day · 70/week · 8/tick, human-like gaps,
+           Gmail Sent-folder double-send guard, IMAP reply/bounce/opt-out detection; follow-ups 7 and 14 days later, only if the opener is confirmed in Sent
 ```
 One workflow (`.github/workflows/outbound.yml`) runs `python -m outreach tick` hourly on weekdays at :23.
 Every tick is idempotent, so a late or dropped GitHub cron is caught up by the next one. Each run writes a

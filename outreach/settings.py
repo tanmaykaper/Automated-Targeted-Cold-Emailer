@@ -114,12 +114,12 @@ class Settings(BaseModel):
     auto_approve: bool = True
 
     # Volumes
-    weekly_source_target: int = 35
-    research_per_tick: int = 12
-    drafts_per_tick: int = 8
-    daily_send_cap: int = 8
-    weekly_send_cap: int = 30
-    per_tick_send_cap: int = 4
+    weekly_source_target: int = 80
+    research_per_tick: int = 18
+    drafts_per_tick: int = 14
+    daily_send_cap: int = 16
+    weekly_send_cap: int = 70
+    per_tick_send_cap: int = 8
     apollo_match_budget: int = 10
     search_budget_per_tick: int = 60
 
@@ -128,7 +128,7 @@ class Settings(BaseModel):
     send_windows: tuple[tuple[int, int], ...] = ((9 * 60 + 30, 11 * 60 + 30), (14 * 60, 16 * 60))
     min_send_delay_s: int = 45
     max_send_delay_s: int = 150
-    followup_gaps_days: tuple[int, ...] = (4, 6)
+    followup_gaps_days: tuple[int, ...] = (7, 7)
     max_followups: int = 2
 
     # Qualification
@@ -175,12 +175,12 @@ def load_settings(**overrides) -> Settings:
         force_window=_bool("FORCE_WINDOW", False),
         attach_resume=_bool("ATTACH_RESUME", False),
         auto_approve=_bool("AUTO_APPROVE", True),
-        weekly_source_target=_int("WEEKLY_TARGET", 35, 0, 500),
-        research_per_tick=_int("RESEARCH_PER_TICK", 12, 0, 200),
-        drafts_per_tick=_int("DRAFTS_PER_TICK", 8, 0, 100),
-        daily_send_cap=_int("DAILY_SEND_CAP", 8, 0, 100),
-        weekly_send_cap=_int("WEEKLY_CAP", 30, 0, 500),
-        per_tick_send_cap=_int("MAX_PER_RUN", 4, 0, 50),
+        weekly_source_target=_int("WEEKLY_TARGET", 80, 0, 500),
+        research_per_tick=_int("RESEARCH_PER_TICK", 18, 0, 200),
+        drafts_per_tick=_int("DRAFTS_PER_TICK", 14, 0, 100),
+        daily_send_cap=_int("DAILY_SEND_CAP", 16, 0, 100),
+        weekly_send_cap=_int("WEEKLY_CAP", 70, 0, 500),
+        per_tick_send_cap=_int("MAX_PER_RUN", 8, 0, 50),
         apollo_match_budget=_int("APOLLO_MATCH_BUDGET", 10, 0, 500),
         search_budget_per_tick=_int("SEARCH_BUDGET_PER_TICK", 60, 0, 1000),
         min_send_delay_s=_int("MIN_SEND_DELAY_S", 45, 0, 3600),

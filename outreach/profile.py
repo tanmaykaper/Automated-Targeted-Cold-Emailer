@@ -35,36 +35,36 @@ class Sender:
             "kpmg_sony_etl",
             "At KPMG (Technology & Data Analytics), I built an automated Python ETL pipeline for "
             "Sony Entertainment's raw BARC viewership data, replacing a manual process",
-            ("DATA_ANALYTICS", "CONSULTING", "STARTUP_TECH", "CORP_STRAT", "MEDIA"),
+            ("DATA_ANALYTICS", "CONSULTING", "STARTUP_TECH", "STARTUP_DATA_AI", "CORP_STRAT", "MEDIA"),
         ),
         ProofPoint(
             "kpmg_sac_dashboards",
             "At KPMG I rebuilt C-suite dashboards in SAP Analytics Cloud for Sony Entertainment, "
             "making them over 80% more responsive, and owned the CEO dashboard data feeds",
-            ("DATA_ANALYTICS", "CONSULTING", "CORP_STRAT"),
+            ("DATA_ANALYTICS", "CONSULTING", "CORP_STRAT", "STARTUP_DATA_AI", "STARTUP_FINTECH"),
         ),
         ProofPoint(
             "kpmg_sap_fabric",
             "At KPMG I mapped the integration architecture between SAP environments and Microsoft "
             "Data Fabric for a client's data modernisation",
-            ("DATA_ANALYTICS", "CONSULTING", "STARTUP_TECH"),
+            ("DATA_ANALYTICS", "CONSULTING", "STARTUP_TECH", "STARTUP_DATA_AI"),
         ),
         ProofPoint(
             "yokohama_pricing",
             "As a data analyst intern at Yokohama Off-Highway Tyres I analysed 10 competitor "
             "portfolios across 200+ SKUs to find pricing gaps for the strategy team",
-            ("CORP_STRAT", "CONSULTING", "PE_VC", "IB"),
+            ("CORP_STRAT", "CONSULTING", "PE_VC", "IB", "STARTUP_CONSUMER", "STARTUP_FINTECH"),
         ),
         ProofPoint(
             "nightwalk_founder",
             "I founded Nightwalk Fashion, a D2C apparel brand that broke even within two months "
             "and runs at a 30% margin",
-            ("STARTUP_TECH", "STARTUP_IMPACT", "PE_VC", "CORP_STRAT"),
+            ("STARTUP_TECH", "STARTUP_IMPACT", "STARTUP_CONSUMER", "STARTUP_DATA_AI", "STARTUP_FINTECH", "PE_VC", "CORP_STRAT"),
         ),
         ProofPoint(
             "fame2_research",
             "I wrote a research paper on how effective India's FAME II policy was at driving EV adoption",
-            ("RESEARCH_ECON", "STARTUP_IMPACT", "CONSULTING"),
+            ("RESEARCH_ECON", "STARTUP_IMPACT", "CONSULTING", "STARTUP_FINTECH"),
         ),
         ProofPoint(
             "street_food_research",
@@ -80,7 +80,7 @@ class Sender:
         ProofPoint(
             "thinqbator_vc",
             "I won first place at the Thinqbator business competition evaluating startups as a VC",
-            ("PE_VC", "STARTUP_TECH"),
+            ("PE_VC", "STARTUP_TECH", "STARTUP_FINTECH"),
         ),
         ProofPoint(
             "ib_tutor",
@@ -118,10 +118,12 @@ MODE_GOALS = {
 TITLES_TIER_A = (
     "founder", "co-founder", "cofounder", "chief executive", "ceo", "chief strategy officer",
     "managing director", "managing partner", "general partner", "senior partner", "partner",
-    "chief of staff", "chief data officer", "chief operating officer", "coo", "president", "owner",
+    "chief of staff", "founder's office", "founders office", "cto", "chief technology officer",
+    "chief business officer", "chief product officer", "chief data officer", "chief operating officer", "coo", "president", "owner",
 )
 TITLES_TIER_B = (
-    "vice president", "vp", "director", "head of", "principal", "associate partner",
+    "vice president", "vp", "director", "head of", "principal", "growth lead", "data lead",
+    "analytics lead", "strategy lead", "bizops lead", "business operations lead", "associate partner",
     "engagement manager", "senior manager", "chief economist", "senior fellow",
     "principal researcher", "department head", "lead economist",
 )
@@ -142,6 +144,7 @@ RELEVANT_FUNCTIONS = (
     "strategy", "analytics", "data", "research", "economic", "consulting", "investment",
     "growth", "operations", "business development", "insights", "policy", "finance",
     "corporate development", "venture", "private equity", "transformation",
+    "bizops", "business operations", "founder's office", "product", "revenue", "pricing",
 )
 
 # ── ICP: verticals ──────────────────────────────────────────────────────────
@@ -153,6 +156,20 @@ VERTICALS: dict[str, dict] = {
     "STARTUP_TECH": {
         "name": "Tech Startups",
         "keywords": ("saas", "fintech", "edtech", "ai startup", "b2b software", "data platform", "software", "internet"),
+    },
+    "STARTUP_DATA_AI": {
+        "name": "Data / AI / Analytics Startups",
+        "keywords": ("data analytics startup", "ai startup", "analytics platform", "data engineering", "generative ai",
+                     "machine learning", "business intelligence", "data infrastructure", "martech", "adtech"),
+    },
+    "STARTUP_FINTECH": {
+        "name": "Fintech Startups",
+        "keywords": ("fintech", "payments", "lending", "wealthtech", "insurtech", "neobank", "credit", "embedded finance"),
+    },
+    "STARTUP_CONSUMER": {
+        "name": "Consumer / D2C Startups",
+        "keywords": ("d2c", "direct to consumer", "consumer brand", "quick commerce", "e-commerce", "consumer internet",
+                     "marketplace", "retail tech"),
     },
     "STARTUP_IMPACT": {
         "name": "Impact / Climate Startups",
@@ -196,19 +213,31 @@ RESEARCH_MARKERS = ("think tank", "policy institute", "research institute", "uni
 INDIA_MARKERS = ("india", "mumbai", "delhi", "gurgaon", "gurugram", "noida", "bangalore", "bengaluru",
                  "hyderabad", "pune", "chennai", "ahmedabad", "kolkata")
 
-# Discovery rotation (geo search term, vertical id). India ≈ 60% of slots.
+# Discovery rotation (geo search term, vertical id), one slot per ISO week.
+# Each slot: 3 startup entries (2 India hubs + 1 abroad) + 2 for consulting/PE/research/data.
+# Startups are weighted toward data/AI, fintech and consumer: the verticals where the resume's
+# Python ETL, SAC dashboards, pricing analysis and D2C founder proof points land hardest.
 DISCOVERY_ROTATION = (
-    (("Mumbai", "CONSULTING"), ("Bangalore", "STARTUP_TECH"), ("Delhi", "CORP_STRAT"), ("Hyderabad", "DATA_ANALYTICS")),
-    (("Mumbai", "PE_VC"), ("Bangalore", "CONSULTING"), ("Chennai", "CORP_STRAT"), ("London", "CONSULTING")),
-    (("Mumbai", "STARTUP_TECH"), ("Bangalore", "STARTUP_IMPACT"), ("Pune", "DATA_ANALYTICS"), ("remote", "RESEARCH_ECON")),
-    (("Delhi", "RESEARCH_ECON"), ("think tank", "RESEARCH_ECON"), ("Singapore", "CONSULTING"), ("London", "STARTUP_TECH")),
-    (("Mumbai", "IB"), ("Bangalore", "PE_VC"), ("Dubai", "CORP_STRAT"), ("New York", "PE_VC")),
-    (("Ahmedabad", "STARTUP_TECH"), ("Hyderabad", "STARTUP_IMPACT"), ("Pune", "CONSULTING"), ("Amsterdam", "DATA_ANALYTICS")),
-    (("Delhi", "CORP_STRAT"), ("Mumbai", "DATA_ANALYTICS"), ("San Francisco", "STARTUP_TECH"), ("Boston", "RESEARCH_ECON")),
-    (("Bangalore", "CORP_STRAT"), ("Sydney", "CONSULTING"), ("remote", "STARTUP_TECH"), ("remote", "DATA_ANALYTICS")),
+    (("Bangalore", "STARTUP_DATA_AI"), ("Mumbai", "STARTUP_FINTECH"), ("Singapore", "STARTUP_DATA_AI"),
+     ("Mumbai", "CONSULTING"), ("Hyderabad", "DATA_ANALYTICS")),
+    (("Gurugram", "STARTUP_CONSUMER"), ("Bangalore", "STARTUP_FINTECH"), ("Dubai", "STARTUP_FINTECH"),
+     ("Mumbai", "PE_VC"), ("London", "CONSULTING")),
+    (("Mumbai", "STARTUP_CONSUMER"), ("Pune", "STARTUP_DATA_AI"), ("London", "STARTUP_FINTECH"),
+     ("Delhi", "CORP_STRAT"), ("remote", "RESEARCH_ECON")),
+    (("Bangalore", "STARTUP_TECH"), ("Delhi", "STARTUP_IMPACT"), ("San Francisco", "STARTUP_DATA_AI"),
+     ("Bangalore", "CONSULTING"), ("Mumbai", "DATA_ANALYTICS")),
+    (("Mumbai", "STARTUP_DATA_AI"), ("Gurugram", "STARTUP_FINTECH"), ("Berlin", "STARTUP_TECH"),
+     ("Mumbai", "IB"), ("Bangalore", "PE_VC")),
+    (("Bangalore", "STARTUP_CONSUMER"), ("Hyderabad", "STARTUP_DATA_AI"), ("New York", "STARTUP_FINTECH"),
+     ("Delhi", "RESEARCH_ECON"), ("Singapore", "CONSULTING")),
+    (("Chennai", "STARTUP_TECH"), ("Mumbai", "STARTUP_IMPACT"), ("remote", "STARTUP_DATA_AI"),
+     ("Dubai", "CORP_STRAT"), ("Pune", "CONSULTING")),
+    (("Delhi", "STARTUP_CONSUMER"), ("Bangalore", "STARTUP_IMPACT"), ("Toronto", "STARTUP_TECH"),
+     ("Amsterdam", "DATA_ANALYTICS"), ("New York", "PE_VC")),
 )
-DISCOVERY_TITLES = ("Founder", "Partner", "Director", "Head of Strategy", "Principal",
-                    "Engagement Manager", "Vice President", "Chief of Staff")
+DISCOVERY_TITLES = ("Founder", "Co-Founder", "Partner", "Director", "Head of Strategy", "Founder's Office",
+                    "Head of Growth", "Principal", "Head of Data", "Engagement Manager", "Vice President",
+                    "Chief of Staff", "Head of Analytics", "CTO")
 
 ROLE_EMAIL_PREFIXES = (
     "info", "contact", "support", "hello", "hi", "team", "noreply", "no-reply", "donotreply",
