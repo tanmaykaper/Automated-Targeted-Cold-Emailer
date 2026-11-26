@@ -30,7 +30,8 @@ def _company(lead: Lead) -> ScoreComponent:
     vertical = detect_vertical(lead)
     ctype = company_type(lead)
     pts = 15 if vertical else 0
-    pts += {"tier1": 10, "research": 8, "startup": 8, "corporate": 4}[ctype]
+    # Preference order: tier-1 firms > startups > research > corporate
+    pts += {"tier1": 10, "startup": 9, "research": 7, "corporate": 4}[ctype]
     vname = VERTICALS.get(vertical, {}).get("name", "no target vertical matched")
     return ScoreComponent(name="company_fit", points=min(pts, 25), max_points=25, reason=f"{vname}; {ctype} company")
 

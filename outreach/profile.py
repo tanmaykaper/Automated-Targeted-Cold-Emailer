@@ -41,7 +41,8 @@ class Sender:
             "kpmg_sac_dashboards",
             "At KPMG I rebuilt C-suite dashboards in SAP Analytics Cloud for Sony Entertainment, "
             "making them over 80% more responsive, and owned the CEO dashboard data feeds",
-            ("DATA_ANALYTICS", "CONSULTING", "CORP_STRAT", "STARTUP_DATA_AI", "STARTUP_FINTECH"),
+            ("DATA_ANALYTICS", "CONSULTING", "CORP_STRAT", "STARTUP_DATA_AI", "STARTUP_FINTECH", "STARTUP_BRANDS",
+             "STARTUP_PRODUCT"),
         ),
         ProofPoint(
             "kpmg_sap_fabric",
@@ -53,13 +54,15 @@ class Sender:
             "yokohama_pricing",
             "As a data analyst intern at Yokohama Off-Highway Tyres I analysed 10 competitor "
             "portfolios across 200+ SKUs to find pricing gaps for the strategy team",
-            ("CORP_STRAT", "CONSULTING", "PE_VC", "IB", "STARTUP_CONSUMER", "STARTUP_FINTECH"),
+            ("CORP_STRAT", "CONSULTING", "PE_VC", "IB", "STARTUP_CONSUMER", "STARTUP_FINTECH", "STARTUP_BRANDS",
+             "STARTUP_FOOD", "STARTUP_PRODUCT"),
         ),
         ProofPoint(
             "nightwalk_founder",
             "I founded Nightwalk Fashion, a D2C apparel brand that broke even within two months "
             "and runs at a 30% margin",
-            ("STARTUP_TECH", "STARTUP_IMPACT", "STARTUP_CONSUMER", "STARTUP_DATA_AI", "STARTUP_FINTECH", "PE_VC", "CORP_STRAT"),
+            ("STARTUP_TECH", "STARTUP_IMPACT", "STARTUP_CONSUMER", "STARTUP_DATA_AI", "STARTUP_FINTECH", "STARTUP_BRANDS",
+             "STARTUP_FOOD", "STARTUP_PRODUCT", "PE_VC", "CORP_STRAT"),
         ),
         ProofPoint(
             "fame2_research",
@@ -70,7 +73,7 @@ class Sender:
             "street_food_research",
             "I studied market structure and pricing in Mumbai's unregulated street-food sector "
             "(monopolistic competition)",
-            ("RESEARCH_ECON",),
+            ("RESEARCH_ECON", "STARTUP_FOOD"),
         ),
         ProofPoint(
             "south_africa_research",
@@ -130,6 +133,7 @@ TITLES_TIER_B = (
 TITLES_TIER_C = (
     "manager", "senior analyst", "team lead", "team leader", "lead analyst", "associate",
     "senior associate", "consultant", "senior consultant", "economist", "research fellow",
+    "brand manager", "category manager", "product manager", "growth manager", "strategy manager",
 )
 REJECT_TITLES = (
     "executive assistant", "personal assistant", "hr ", "hr,", "human resources", "people partner",
@@ -145,7 +149,50 @@ RELEVANT_FUNCTIONS = (
     "growth", "operations", "business development", "insights", "policy", "finance",
     "corporate development", "venture", "private equity", "transformation",
     "bizops", "business operations", "founder's office", "product", "revenue", "pricing",
+    "brand", "brands", "marketing", "category", "segment", "business head", "p&l",
 )
+
+# ── ICP: job-title glossary ─────────────────────────────────────────────────
+# The same job is titled differently across companies (and especially across startups).
+# Each canonical role lists its alternates and the tier it scores as. icp.title_tier() takes the
+# best tier from either the plain lists above or this glossary; discovery also rotates through it.
+TITLE_GLOSSARY: dict[str, tuple[str, tuple[str, ...]]] = {
+    "Founder / CEO": ("A", (
+        "founder", "co-founder", "cofounder", "founding partner", "ceo", "chief executive",
+        "managing director", "proprietor")),
+    "Founder's Office / Chief of Staff": ("A", (
+        "founder's office", "founders office", "founders' office", "office of the founder", "office of the ceo",
+        "ceo's office", "ceo office", "chief of staff", "special projects lead", "strategic initiatives lead")),
+    "Head of Strategy": ("B", (
+        "head of strategy", "strategy head", "head - strategy", "head, strategy", "director of strategy",
+        "strategy director", "vp strategy", "vp - strategy", "strategy lead", "head of corporate strategy",
+        "head of strategic planning", "gm strategy", "general manager strategy")),
+    "Head of Brand / Marketing": ("B", (
+        "head of brand", "head of brands", "brand head", "head - brand", "brand director", "brand lead",
+        "head of marketing", "marketing head", "marketing lead", "cmo", "chief marketing officer",
+        "head of brand marketing", "brand custodian")),
+    "Category / Segment / Business Head": ("B", (
+        "category head", "category lead", "head of category", "segment head", "segment lead", "business head",
+        "business unit head", "bu head", "vertical head", "vertical lead", "p&l head", "p&l owner",
+        "general manager", "country manager", "city head", "regional head", "cluster head", "channel head")),
+    "Head of Growth": ("B", (
+        "head of growth", "growth head", "growth lead", "vp growth", "director of growth", "growth director",
+        "head of revenue", "revenue lead", "head of d2c", "d2c head", "head of ecommerce", "ecommerce head")),
+    "Head of Data / Analytics": ("B", (
+        "head of data", "data head", "head of analytics", "analytics head", "analytics lead", "data lead",
+        "director of analytics", "head of insights", "insights lead", "head of business intelligence",
+        "bi lead", "head of data science")),
+    "Head of Operations / BizOps": ("B", (
+        "head of operations", "operations head", "ops head", "bizops lead", "business operations lead",
+        "head of bizops", "head of business operations", "director of operations", "supply chain head")),
+    "Head of Product": ("B", (
+        "head of product", "product head", "product lead", "director of product", "vp product",
+        "chief product officer", "cpo", "group product manager", "head of npd", "npd head",
+        "new product development head")),
+    "Brand / Category / Product Manager": ("C", (
+        "brand manager", "senior brand manager", "category manager", "senior category manager",
+        "product manager", "senior product manager", "growth manager", "strategy manager", "business manager")),
+}
 
 # ── ICP: verticals ──────────────────────────────────────────────────────────
 VERTICALS: dict[str, dict] = {
@@ -170,6 +217,21 @@ VERTICALS: dict[str, dict] = {
         "name": "Consumer / D2C Startups",
         "keywords": ("d2c", "direct to consumer", "consumer brand", "quick commerce", "e-commerce", "consumer internet",
                      "marketplace", "retail tech"),
+    },
+    "STARTUP_BRANDS": {
+        "name": "Consumer Brand Startups (D2C, beauty, wellness, fashion)",
+        "keywords": ("d2c brand", "consumer brand", "beauty", "personal care", "skincare", "wellness", "health and wellness",
+                     "fashion brand", "apparel", "lifestyle brand", "house of brands", "brand building"),
+    },
+    "STARTUP_FOOD": {
+        "name": "Food & Beverage Startups",
+        "keywords": ("food and beverage", "f&b", "food brand", "beverage", "snacks", "packaged food", "healthy snacking",
+                     "coffee", "dairy", "cloud kitchen", "restaurant", "foodtech", "nutrition"),
+    },
+    "STARTUP_PRODUCT": {
+        "name": "Consumer Product / CPG Startups",
+        "keywords": ("cpg", "fmcg", "consumer goods", "consumer products", "home care", "home goods", "pet care",
+                     "baby care", "consumer electronics", "consumer hardware", "product company"),
     },
     "STARTUP_IMPACT": {
         "name": "Impact / Climate Startups",
@@ -214,30 +276,31 @@ INDIA_MARKERS = ("india", "mumbai", "delhi", "gurgaon", "gurugram", "noida", "ba
                  "hyderabad", "pune", "chennai", "ahmedabad", "kolkata")
 
 # Discovery rotation (geo search term, vertical id), one slot per ISO week.
-# Each slot: 3 startup entries (2 India hubs + 1 abroad) + 2 for consulting/PE/research/data.
-# Startups are weighted toward data/AI, fintech and consumer: the verticals where the resume's
-# Python ETL, SAC dashboards, pricing analysis and D2C founder proof points land hardest.
+# Each slot: 4 startup entries (two non-tech: brands / food / consumer products, two tech; India hubs
+# plus one abroad) + 2 for consulting / PE / research / data. Scoring still ranks tier-1 firms above
+# startups; this only decides who gets *found*.
 DISCOVERY_ROTATION = (
-    (("Bangalore", "STARTUP_DATA_AI"), ("Mumbai", "STARTUP_FINTECH"), ("Singapore", "STARTUP_DATA_AI"),
-     ("Mumbai", "CONSULTING"), ("Hyderabad", "DATA_ANALYTICS")),
-    (("Gurugram", "STARTUP_CONSUMER"), ("Bangalore", "STARTUP_FINTECH"), ("Dubai", "STARTUP_FINTECH"),
-     ("Mumbai", "PE_VC"), ("London", "CONSULTING")),
-    (("Mumbai", "STARTUP_CONSUMER"), ("Pune", "STARTUP_DATA_AI"), ("London", "STARTUP_FINTECH"),
-     ("Delhi", "CORP_STRAT"), ("remote", "RESEARCH_ECON")),
-    (("Bangalore", "STARTUP_TECH"), ("Delhi", "STARTUP_IMPACT"), ("San Francisco", "STARTUP_DATA_AI"),
-     ("Bangalore", "CONSULTING"), ("Mumbai", "DATA_ANALYTICS")),
-    (("Mumbai", "STARTUP_DATA_AI"), ("Gurugram", "STARTUP_FINTECH"), ("Berlin", "STARTUP_TECH"),
-     ("Mumbai", "IB"), ("Bangalore", "PE_VC")),
-    (("Bangalore", "STARTUP_CONSUMER"), ("Hyderabad", "STARTUP_DATA_AI"), ("New York", "STARTUP_FINTECH"),
-     ("Delhi", "RESEARCH_ECON"), ("Singapore", "CONSULTING")),
-    (("Chennai", "STARTUP_TECH"), ("Mumbai", "STARTUP_IMPACT"), ("remote", "STARTUP_DATA_AI"),
-     ("Dubai", "CORP_STRAT"), ("Pune", "CONSULTING")),
-    (("Delhi", "STARTUP_CONSUMER"), ("Bangalore", "STARTUP_IMPACT"), ("Toronto", "STARTUP_TECH"),
-     ("Amsterdam", "DATA_ANALYTICS"), ("New York", "PE_VC")),
+    (("Mumbai", "STARTUP_BRANDS"), ("Bangalore", "STARTUP_FOOD"), ("Bangalore", "STARTUP_DATA_AI"),
+     ("Singapore", "STARTUP_BRANDS"), ("Mumbai", "CONSULTING"), ("Hyderabad", "DATA_ANALYTICS")),
+    (("Gurugram", "STARTUP_PRODUCT"), ("Mumbai", "STARTUP_FOOD"), ("Bangalore", "STARTUP_FINTECH"),
+     ("Dubai", "STARTUP_FOOD"), ("Mumbai", "PE_VC"), ("London", "CONSULTING")),
+    (("Delhi", "STARTUP_BRANDS"), ("Pune", "STARTUP_PRODUCT"), ("Mumbai", "STARTUP_CONSUMER"),
+     ("London", "STARTUP_BRANDS"), ("Delhi", "CORP_STRAT"), ("remote", "RESEARCH_ECON")),
+    (("Bangalore", "STARTUP_BRANDS"), ("Gurugram", "STARTUP_FOOD"), ("Pune", "STARTUP_DATA_AI"),
+     ("New York", "STARTUP_PRODUCT"), ("Bangalore", "CONSULTING"), ("Mumbai", "DATA_ANALYTICS")),
+    (("Mumbai", "STARTUP_PRODUCT"), ("Delhi", "STARTUP_FOOD"), ("Gurugram", "STARTUP_FINTECH"),
+     ("Singapore", "STARTUP_FOOD"), ("Mumbai", "IB"), ("Bangalore", "PE_VC")),
+    (("Gurugram", "STARTUP_BRANDS"), ("Bangalore", "STARTUP_PRODUCT"), ("Hyderabad", "STARTUP_DATA_AI"),
+     ("San Francisco", "STARTUP_BRANDS"), ("Delhi", "RESEARCH_ECON"), ("Singapore", "CONSULTING")),
+    (("Mumbai", "STARTUP_FOOD"), ("Chennai", "STARTUP_PRODUCT"), ("Mumbai", "STARTUP_IMPACT"),
+     ("Dubai", "STARTUP_BRANDS"), ("Dubai", "CORP_STRAT"), ("Pune", "CONSULTING")),
+    (("Bangalore", "STARTUP_CONSUMER"), ("Delhi", "STARTUP_PRODUCT"), ("Ahmedabad", "STARTUP_FOOD"),
+     ("Berlin", "STARTUP_DATA_AI"), ("Amsterdam", "DATA_ANALYTICS"), ("New York", "PE_VC")),
 )
 DISCOVERY_TITLES = ("Founder", "Co-Founder", "Partner", "Director", "Head of Strategy", "Founder's Office",
-                    "Head of Growth", "Principal", "Head of Data", "Engagement Manager", "Vice President",
-                    "Chief of Staff", "Head of Analytics", "CTO")
+                    "Head of Growth", "Brand Head", "Principal", "Head of Data", "Category Head",
+                    "Engagement Manager", "Head of Brand", "Vice President", "Business Head", "Chief of Staff",
+                    "Segment Lead", "Head of Marketing", "Head of Analytics", "Strategy Lead", "CTO")
 
 ROLE_EMAIL_PREFIXES = (
     "info", "contact", "support", "hello", "hi", "team", "noreply", "no-reply", "donotreply",

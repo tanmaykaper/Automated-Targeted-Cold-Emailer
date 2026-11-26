@@ -6,7 +6,7 @@ from functools import lru_cache
 
 from .models import Lead
 from .profile import (
-    INDIA_MARKERS, REJECT_TITLES, RELEVANT_FUNCTIONS, RESEARCH_MARKERS, TIER1_BRANDS,
+    INDIA_MARKERS, REJECT_TITLES, RELEVANT_FUNCTIONS, RESEARCH_MARKERS, TIER1_BRANDS, TITLE_GLOSSARY,
     TITLES_TIER_A, TITLES_TIER_B, TITLES_TIER_C, VERTICALS,
 )
 
@@ -30,10 +30,21 @@ def title_tier(title: str) -> tuple[str | None, str]:
         return None, "missing title"
     if bad := _has(t, REJECT_TITLES):
         return None, f"rejected title term '{bad.strip()}'"
+    best: tuple[str, str] | None = None
     for tier, terms in (("A", TITLES_TIER_A), ("B", TITLES_TIER_B), ("C", TITLES_TIER_C)):
         if hit := _has(t, terms):
-            return tier, f"title matches tier {tier} ('{hit}')"
-    return None, "title outside target seniority"
+            best = (tier, f"title matches tier {tier} ('{hit}')")
+            break
+    for role, (tier, alts) in TITLE_GLOSSARY.items():
+        if (best is None or tier < best[0]) and (hit := _has(t, alts)):
+            best = (tier, f"title matches tier {tier} ('{hit}' = {role})")
+    return best if best else (None, "title outside target seniority")
+
+
+def canonical_role(title: str) -> str:
+    """Glossary role a title maps to ('' if none), e.g. 'Brand Head' -> 'Head of Brand / Marketing'."""
+    t = " " + (title or "").lower() + " "
+    return next((role for role, (_, alts) in TITLE_GLOSSARY.items() if _has(t, alts)), "")
 
 
 def function_relevance(title: str, departments: str = "") -> str:

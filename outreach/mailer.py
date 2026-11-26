@@ -208,9 +208,33 @@ def followup_due(lead: Lead, settings: Settings, now: datetime) -> int | None:
     return nxt if now - lead.last_send.sent_at >= timedelta(days=gap) else None
 
 
-def human_delay(settings: Settings, sleep=time.sleep) -> None:
-    sleep(random.uniform(settings.min_send_delay_s, settings.max_send_delay_s))
+def human_delay(settings: Settings, sleep=time.sleep, rng: random.Random | None = None) -> None:
+    """Irregular gap between sends: uniform base, occasionally a much longer pause."""
+    rng = rng or random
+    gap = rng.uniform(settings.min_send_delay_s, settings.max_send_delay_s)
+    if settings.randomize_sends and rng.random() < 0.15:
+        gap *= rng.uniform(1.5, 2.5)
+    sleep(gap)
+
+
+def daily_budget(settings: Settings, day: str) -> int:
+    """Today's send ceiling: random in [floor, cap], stable for the whole day (ticks stay idempotent)."""
+    if not settings.randomize_sends:
+        return settings.daily_send_cap
+    lo = min(settings.daily_send_floor, settings.daily_send_cap)
+    return random.Random(f"daily-budget:{day}").randint(lo, settings.daily_send_cap)
+
+
+def run_budget(settings: Settings, rng: random.Random | None = None) -> int:
+    """This run's send count: sometimes zero, otherwise random in [min, cap]."""
+    if not settings.randomize_sends:
+        return settings.per_tick_send_cap
+    rng = rng or random
+    if rng.random() < settings.send_skip_probability:
+        return 0
+    lo = min(settings.per_tick_send_min, settings.per_tick_send_cap)
+    return rng.randint(lo, settings.per_tick_send_cap)
 
 
 __all__ = ["Gmail", "Suppression", "in_send_window", "followup_due", "week_bounds", "day_bounds",
-           "human_delay", "sendable"]
+           "human_delay", "daily_budget", "run_budget", "sendable"]

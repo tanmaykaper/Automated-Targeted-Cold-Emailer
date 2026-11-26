@@ -24,7 +24,8 @@ from .ingest.csv_import import ingest_dropins
 from .ingest.discovery import ApolloDiscovery, SearchDiscovery
 from .ingest.legacy import migrate_legacy
 from .llm import LLM, LLMError
-from .mailer import Gmail, Suppression, day_bounds, followup_due, human_delay, in_send_window, week_bounds
+from .mailer import (Gmail, Suppression, daily_budget, day_bounds, followup_due, human_delay, in_send_window,
+                     run_budget, week_bounds)
 from .models import EmailStatus, Lead, LeadState, SendRecord, VerificationResult, utcnow
 from .research import Researcher
 from .scoring import prequalify, score_lead
@@ -334,14 +335,19 @@ def stage_send(ctx: Context) -> None:
     now = utcnow()
     week_sent = ctx.store.sends_between(*week_bounds(now))
     day_sent = ctx.store.sends_between(*day_bounds(now))
-    budget = min(ctx.s.per_tick_send_cap, ctx.s.daily_send_cap - day_sent, ctx.s.weekly_send_cap - week_sent)
+    today_cap = daily_budget(ctx.s, now.date().isoformat())
+    this_run = run_budget(ctx.s)
+    budget = min(this_run, today_cap - day_sent, ctx.s.weekly_send_cap - week_sent)
     queue: list[tuple[Lead, int]] = []
     if ctx.followups_allowed:
         queue += [(l, s) for l in ctx.store.by_state(LeadState.SENT) if (s := followup_due(l, ctx.s, now)) is not None]
     queue += [(l, 0) for l in ctx.store.by_state(LeadState.APPROVED)]
     queue.sort(key=lambda x: (x[1] == 0, x[0].score.tier if x[0].score else "Z", -(x[0].score.total if x[0].score else 0)))
-    st.notes.append(f"caps: today {day_sent}/{ctx.s.daily_send_cap}, week {week_sent}/{ctx.s.weekly_send_cap}, "
-                    f"this tick ≤{max(budget, 0)}; {len(queue)} queued; dry_run={ctx.s.dry_run}")
+    st.notes.append(f"caps: today {day_sent}/{today_cap}, week {week_sent}/{ctx.s.weekly_send_cap}, "
+                    f"this run drew {this_run} → ≤{max(budget, 0)}; {len(queue)} queued; dry_run={ctx.s.dry_run}")
+    if this_run == 0 and queue and today_cap - day_sent > 0:
+        st.outcomes["skipped_run_random"] += len(queue)
+        return
     if budget <= 0:
         st.outcomes["cap_reached"] += len(queue)
         return

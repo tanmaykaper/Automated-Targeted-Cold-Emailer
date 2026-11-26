@@ -114,20 +114,28 @@ class Settings(BaseModel):
     auto_approve: bool = True
 
     # Volumes
-    weekly_source_target: int = 80
-    research_per_tick: int = 18
-    drafts_per_tick: int = 14
-    daily_send_cap: int = 16
-    weekly_send_cap: int = 70
-    per_tick_send_cap: int = 8
+    weekly_source_target: int = 110
+    research_per_tick: int = 22
+    drafts_per_tick: int = 18
+    # Daily volume is a random number in [daily_send_floor, daily_send_cap], fixed per calendar day,
+    # so the account never sends the same count two days running. The ceiling stays below 25 because
+    # this Gmail also sends 10-20 manual outreach emails a day; cold volume is what spam filters punish.
+    daily_send_cap: int = 20
+    daily_send_floor: int = 12
+    weekly_send_cap: int = 80
+    # Per run: a random count in [per_tick_send_min, per_tick_send_cap]; some runs send nothing.
+    per_tick_send_cap: int = 5
+    per_tick_send_min: int = 1
+    send_skip_probability: float = 0.2
+    randomize_sends: bool = True
     apollo_match_budget: int = 10
     search_budget_per_tick: int = 60
 
     # Sending behaviour
     send_weekdays: tuple[int, ...] = (0, 1, 2, 3)  # Mon–Thu, recipient-local
     send_windows: tuple[tuple[int, int], ...] = ((9 * 60 + 30, 11 * 60 + 30), (14 * 60, 16 * 60))
-    min_send_delay_s: int = 45
-    max_send_delay_s: int = 150
+    min_send_delay_s: int = 60
+    max_send_delay_s: int = 300
     followup_gaps_days: tuple[int, ...] = (7, 7)
     max_followups: int = 2
 
@@ -152,7 +160,7 @@ class Settings(BaseModel):
     resume_path: Path = REPO_ROOT / "resume.pdf"
 
     # Wall-clock budget for one tick (GitHub job timeout is higher)
-    tick_budget_s: int = 30 * 60
+    tick_budget_s: int = 38 * 60
 
     keys: Keys = Field(default_factory=Keys)
 
@@ -175,16 +183,19 @@ def load_settings(**overrides) -> Settings:
         force_window=_bool("FORCE_WINDOW", False),
         attach_resume=_bool("ATTACH_RESUME", False),
         auto_approve=_bool("AUTO_APPROVE", True),
-        weekly_source_target=_int("WEEKLY_TARGET", 80, 0, 500),
-        research_per_tick=_int("RESEARCH_PER_TICK", 18, 0, 200),
-        drafts_per_tick=_int("DRAFTS_PER_TICK", 14, 0, 100),
-        daily_send_cap=_int("DAILY_SEND_CAP", 16, 0, 100),
-        weekly_send_cap=_int("WEEKLY_CAP", 70, 0, 500),
-        per_tick_send_cap=_int("MAX_PER_RUN", 8, 0, 50),
+        weekly_source_target=_int("WEEKLY_TARGET", 110, 0, 500),
+        research_per_tick=_int("RESEARCH_PER_TICK", 22, 0, 200),
+        drafts_per_tick=_int("DRAFTS_PER_TICK", 18, 0, 100),
+        daily_send_cap=_int("DAILY_SEND_CAP", 20, 0, 100),
+        daily_send_floor=_int("DAILY_SEND_FLOOR", 12, 0, 100),
+        weekly_send_cap=_int("WEEKLY_CAP", 80, 0, 500),
+        per_tick_send_cap=_int("MAX_PER_RUN", 5, 0, 50),
+        per_tick_send_min=_int("MIN_PER_RUN", 1, 0, 50),
+        randomize_sends=_bool("RANDOMIZE_SENDS", True),
         apollo_match_budget=_int("APOLLO_MATCH_BUDGET", 10, 0, 500),
         search_budget_per_tick=_int("SEARCH_BUDGET_PER_TICK", 60, 0, 1000),
-        min_send_delay_s=_int("MIN_SEND_DELAY_S", 45, 0, 3600),
-        max_send_delay_s=_int("MAX_SEND_DELAY_S", 150, 0, 3600),
+        min_send_delay_s=_int("MIN_SEND_DELAY_S", 60, 0, 3600),
+        max_send_delay_s=_int("MAX_SEND_DELAY_S", 300, 0, 3600),
         tier_a_min=_int("TIER_A_MIN", 80, 1, 100),
         tier_b_min=_int("TIER_B_MIN", 60, 1, 100),
         catch_all_min_confidence=_int("CATCH_ALL_MIN_CONFIDENCE", 70, 0, 100),
@@ -192,7 +203,7 @@ def load_settings(**overrides) -> Settings:
         llm_provider=_env("LLM_PROVIDER", "auto").lower(),
         llm_fast_model=_env("LLM_FAST_MODEL"),
         llm_writer_model=_env("LLM_WRITER_MODEL"),
-        tick_budget_s=_int("TICK_BUDGET_S", 30 * 60, 60, 6 * 3600),
+        tick_budget_s=_int("TICK_BUDGET_S", 38 * 60, 60, 6 * 3600),
         keys=keys,
     )
     if state := _env("STATE_DIR"):

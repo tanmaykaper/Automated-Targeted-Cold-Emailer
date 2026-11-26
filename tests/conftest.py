@@ -29,7 +29,7 @@ def apollo_csv(*rows: str) -> str:
 def settings(tmp_path, monkeypatch):
     monkeypatch.setattr("outreach.settings._load_dotenv", lambda: None)
     return load_settings(state_dir=tmp_path / "state", inputs_dir=tmp_path / "inputs", smtp_probe_enabled=False,
-                         min_send_delay_s=0, max_send_delay_s=0)
+                         min_send_delay_s=0, max_send_delay_s=0, randomize_sends=False)
 
 
 class FakeSearch:
