@@ -1,2 +1,6 @@
 # One email (or @domain) per line. Never contacted again. Opt-outs and bounces are appended automatically.
 lokendra-singh@googlegroups.com
+arghyapaul@tata.com
+nishanthr@tata.com
+pmunipalli@hcltech.com
+ankur.khanna@sas.com

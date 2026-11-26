@@ -3,6 +3,60 @@
 Approved drafts waiting for their send window, plus drafts that need a human look.
 Edit `state/suppression.txt` to block an address; set a lead's state in `state/leads.jsonl` to skip it.
 
+### Hemant Jhajhria — Head of Consulting, KPMG
+`ld_0250171f2995` · state **APPROVED** · email `hemantj@kpmg.com` **VERIFIED** (95, via smtp)
+**Score 94/100 → Tier A** — title_fit 27/30 · company_fit 25/25 · deliverability 20/20 · signal 12/15 · hook_quality 10/10
+> 94/100 → Tier A. Strongest: company_fit (Management Consulting; tier1 company). Weakest: signal (growth signal (funding/hiring/expansion/launch); India (priority geography)).
+
+**Hook confidence:** high — person-level hook found (talk: F2)
+**Company:** KPMG is a global professional services firm that recently announced a Client Technology & Innovation Group and AI-native platforms, positioning itself at the forefront of AI‑enabled consulting.
+**Role scope:** Likely oversees consulting strategy, guiding clients on AI adoption and technology integration.
+
+**Verified facts**
+- F1 [person/role] KPMG in India names Hemant Jhajhria as Head of Consulting — [source](https://timesofindia.indiatimes.com/business/india-business/kpmg-in-india-names-hemant-jhajhria-as-head-of-consulting/articleshow/115012371.cms)
+- F2 [person/talk] Hemant Jhajhria of KPMG talks about how AI will affect the banking sector — [source](https://www.youtube.com/watch?v=rhE_8MfobQM)
+- F3 [company/launch] KPMG announces Client Technology & Innovation Group to build AI-native businesses — [source](https://kpmg.com/us/en/media/news/kpmg-announces-client-technology-innovation-group.html)
+- F4 [company/launch] KPMG launches AI-native audit platform in the US — [source](https://www.internationalaccountingbulletin.com/news/kpmg-launches-ai-enabled-audit-platform-in-the-us/)
+- F5 [company/launch] KPMG Launches KPMG Vultron, Providing Clients with Frontier AI ... — [source](https://kpmg.com/us/en/media/news/kpmg-launches-kpmg-vultron.html)
+
+**Angles**
+- Your experience building an automated Python ETL pipeline for Sony aligns with KPMG’s new AI‑native initiatives and the demand for data‑driven consulting solutions. (facts: F3, F4, F5; proof: kpmg_sony_etl)
+- Your work mapping SAP integration to Microsoft Data Fabric demonstrates the technical expertise KPMG seeks to accelerate client digital transformation. (facts: F3, F5; proof: kpmg_sap_fabric)
+
+**Email 1** (91 words) — subject: `banking ai, sony etl work`
+```text
+Hi Hemant,
+
+I noticed your talk on how AI will affect the banking sector. I'm a final-year economics student at NMIMS and currently a consulting intern in KPMG's Technology & Data Analytics team in Mumbai. In my work here, I built an automated Python ETL pipeline for Sony Entertainment's raw BARC viewership data, replacing a manual process.
+
+As I prepare to graduate, I'm looking for a part-time or remote strategy or analytics internship alongside my final year. Would you be open to a short chat about how your team takes on interns?
+
+Best,
+Tanmay Kaper
+BSc Economics, NMIMS Mumbai '27 · linkedin.com/in/tanmay-k-a344b1226
+```
+
+**Follow-up 1** (55 words) — subject: `Re: banking ai, sony etl work`
+```text
+Hi Hemant,
+
+In another project at KPMG, I mapped the integration architecture between SAP environments and Microsoft Data Fabric for a client's data modernisation. I'm keen to bring this technical execution to strategy and consulting assignments. Would it be worth a conversation, or is there someone else on your team better placed to speak with?
+
+Tanmay
+```
+
+**Follow-up 2** (35 words) — subject: `Re: banking ai, sony etl work`
+```text
+Hi Hemant,
+
+If this isn't a fit right now, no worries at all — I won't keep emailing. If there's someone else on the consulting team I should reach out to instead, please let me know.
+
+Tanmay
+```
+QA: PASS after 1 attempt(s)
+
+---
+
 ### Moka Bhikshalu — Chief Data Officer, Business Transformation
 `ld_0c6feff7d25e` · state **APPROVED** · email `mbhikshalu@thehackettgroup.com` **CATCH_ALL** (80, via catch_all)
 **Score 68/100 → Tier B** — title_fit 30/30 · company_fit 19/25 · deliverability 13/20 · signal 4/15 · hook_quality 2/10
@@ -158,6 +212,64 @@ Tanmay
 Hi Joydeep,
 
 If this isn't a fit right now, no worries — I won't keep emailing. If there's someone else on your team who manages intern hiring, I'd be grateful for a quick pointer.
+
+Tanmay
+```
+QA: PASS after 1 attempt(s)
+
+---
+
+### Shivang Mahadevia — Head Of Strategy, Tata Chemicals
+`ld_156c4132255f` · state **APPROVED** · email `smahadevia@tatachemicals.com` **VERIFIED** (95, via smtp)
+**Score 90/100 → Tier A** — title_fit 27/30 · company_fit 25/25 · deliverability 20/20 · signal 12/15 · hook_quality 6/10
+> 90/100 → Tier A. Strongest: company_fit (Management Consulting; tier1 company). Weakest: hook_quality (company-level signal (launch: F1); no person-specific hook).
+
+**Hook confidence:** medium — company-level signal (launch: F1); no person-specific hook
+**Company:** Tata Chemicals is a global science-led company focused on sustainability-led, application-focused businesses while maintaining its core leadership in Soda Ash production. The company operates 17 manufacturing plants across four continents and is actively expanding its footprint through new facilities and digital transformation initiatives.
+**Role scope:** As Head of Strategy, Shivang Mahadevia likely leads long-term business planning, evaluates market expansion opportunities, and oversees the strategic integration of new digital tools and manufacturing investments.
+
+**Verified facts**
+- F1 [company/launch] Tata Chemicals Launches ChemForce™ to Accelerate ... — [source](https://www.tatachemicals.com/media/newsroom/press-releases/tata-chemicals-launches-chemforce-to-accelerate-customer-engagement-in-collaboration-with-salesforce)
+- F2 [company/launch] Tata Chemicals to Invest ₹515 Crore in New IVSD Manufacturing Facility ... — [source](https://www.tatachemicals.com/media/newsroom/press-releases/tata-chemicals-to-invest-515-crore-in-new-ivsd-manufacturing-facility-in-tamilnadu)
+- F3 [company/launch] Mithapur plant launches Suraksha Gurukul safety training centre. — [source](https://www.tatachemicals.com/)
+- F4 [company/other] World #3 in Soda Ash production — [source](https://tatachemicals.com/)
+- F5 [company/initiative] towards sustainability-led, application-focused businesses while maintaining strength in its core capabilities. — [source](https://tatachemicals.com/about)
+- F6 [company/other] Developed and scaled bio‑based surfactant manufacturing tech, achieving solvent‑free process. — [source](https://tatachemicals.com/)
+- F7 [company/other] Tata Chemicals operates 4 continents, 17 manufacturing plants, 3 R&D centers, and holds 180 patents. — [source](https://tatachemicals.com/about)
+
+**Angles**
+- With Tata Chemicals investing ₹515 crore in new manufacturing facilities and scaling high-tech production processes, they likely require analytical support to evaluate market positioning and pricing structures for these new units. (facts: F2, F6; proof: yokohama_pricing)
+- As the company accelerates customer engagement through the new ChemForce platform, Shivang may benefit from a student with proven experience in streamlining data architecture and automating C-suite reporting pipelines. (facts: F1; proof: kpmg_sac_dashboards)
+
+**Email 1** (80 words) — subject: `tata chemicals ivsd investment`
+```text
+Hi Shivang,
+
+Tata Chemicals recently committed ₹515 crore toward a new IVSD manufacturing facility.
+
+I'm a final-year economics student at NMIMS writing to see if your strategy team takes on part-time intern support. During my internship at Yokohama Off-Highway Tyres, I analysed 10 competitor portfolios across 200+ SKUs to find pricing gaps for the strategy team.
+
+Would it be worth a short conversation to see if my background in pricing and portfolio analysis could help with your upcoming expansion plans?
+
+Best,
+Tanmay Kaper
+BSc Economics, NMIMS Mumbai '27 · linkedin.com/in/tanmay-k-a344b1226
+```
+
+**Follow-up 1** (47 words) — subject: `Re: tata chemicals ivsd investment`
+```text
+Hi Shivang,
+
+At KPMG, I built an automated Python ETL pipeline for Sony Entertainment's raw BARC viewership data, replacing a manual process. As Tata Chemicals launches platforms like ChemForce alongside plant expansions, automated data pipelines can support strategy reporting. Would you be open to a quick chat?
+
+Tanmay
+```
+
+**Follow-up 2** (37 words) — subject: `Re: tata chemicals ivsd investment`
+```text
+Hi Shivang,
+
+If this isn't a fit right now, no worries — I won't keep emailing. If someone else on your strategy team is better placed to talk about intern roles, could you point me in their direction?
 
 Tanmay
 ```

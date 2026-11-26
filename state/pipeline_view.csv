@@ -1,4 +1,13 @@
 id,state,state_reason,tier,score,name,title,company,domain,email,email_status,email_confidence,hook,subject,body,sends,last_sent,source,updated_at
+ld_0250171f2995,APPROVED,QA passed,A,94,Hemant Jhajhria,Head of Consulting,KPMG,kpmg.com,hemantj@kpmg.com,VERIFIED,95,high,"banking ai, sony etl work","Hi Hemant,
+
+I noticed your talk on how AI will affect the banking sector. I'm a final-year economics student at NMIMS and currently a consulting intern in KPMG's Technology & Data Analytics team in Mumbai. In my work here, I built an automated Python ETL pipeline for Sony Entertainment's raw BARC viewership data, replacing a manual process.
+
+As I prepare to graduate, I'm looking for a part-time or remote strategy or analytics internship alongside my final year. Would you be open to a short chat about how your team takes on interns?
+
+Best,
+Tanmay Kaper
+BSc Economics, NMIMS Mumbai '27 · linkedin.com/in/tanmay-k-a344b1226",0,,search:serper,2026-11-26T18:02:07+00:00
 ld_0c6feff7d25e,APPROVED,QA passed,B,68,Moka Bhikshalu,Chief Data Officer,Business Transformation,thehackettgroup.com,mbhikshalu@thehackettgroup.com,CATCH_ALL,80,low,python etl and enterprise data,"Hi Moka,
 
 I noticed your focus on helping scaling tech founders turn enterprise data into faster decisions.
@@ -32,6 +41,17 @@ I'm looking for a remote or part-time internship alongside my final year. Would 
 Best,
 Tanmay Kaper
 BSc Economics, NMIMS Mumbai '27 · linkedin.com/in/tanmay-k-a344b1226",0,,search:serper,2026-11-24T23:59:45+00:00
+ld_156c4132255f,APPROVED,QA passed,A,90,Shivang Mahadevia,Head Of Strategy,Tata Chemicals,tatachemicals.com,smahadevia@tatachemicals.com,VERIFIED,95,medium,tata chemicals ivsd investment,"Hi Shivang,
+
+Tata Chemicals recently committed ₹515 crore toward a new IVSD manufacturing facility.
+
+I'm a final-year economics student at NMIMS writing to see if your strategy team takes on part-time intern support. During my internship at Yokohama Off-Highway Tyres, I analysed 10 competitor portfolios across 200+ SKUs to find pricing gaps for the strategy team.
+
+Would it be worth a short conversation to see if my background in pricing and portfolio analysis could help with your upcoming expansion plans?
+
+Best,
+Tanmay Kaper
+BSc Economics, NMIMS Mumbai '27 · linkedin.com/in/tanmay-k-a344b1226",0,,search:serper,2026-11-26T18:02:26+00:00
 ld_2b5246617cc7,APPROVED,QA passed,B,71,Vikas Yadav,Principal,Corporate Strategy & M&A,arcweb.com,vyadav@arcweb.com,CATCH_ALL,80,medium,yokohama pricing + arc strategy,"Hi Vikas,
 
 ARC provides technology market research and advisory for industrial, energy, and manufacturing firms adapting to automation and Industrial AI.
@@ -54,25 +74,75 @@ Is it worth a quick conversation, or is there someone else on your team better p
 Best,
 Tanmay Kaper
 BSc Economics, NMIMS Mumbai '27 · linkedin.com/in/tanmay-k-a344b1226",0,,search:serper,2026-11-24T23:58:13+00:00
+ld_171c09811531,BOUNCED,bounce notification via IMAP,B,64,Ankur Khanna,Vice President,"Data, Analytics and AI",sas.com,ankur.khanna@sas.com,CATCH_ALL,81,low,"sas analytics, kpmg dashboards","Hi Ankur,
+
+SAS Viya focuses on integrating advanced analytics and governance for enterprise decision-making across complex industries.
+
+I am a final-year economics student at NMIMS Mumbai and a consulting intern in KPMG's Technology & Data Analytics team. At KPMG, I rebuilt C-suite dashboards in SAP Analytics Cloud for Sony Entertainment, making them over 80% more responsive, and owned the CEO dashboard data feeds.
+
+I am looking for a remote part-time internship in data analytics alongside my final year. Would you be open to a quick conversation, or is there someone else on your team better placed to ask?
+
+Best,
+Tanmay Kaper
+BSc Economics, NMIMS Mumbai '27 · linkedin.com/in/tanmay-k-a344b1226",1,2026-11-25T19:26:44+00:00,search:serper,2026-11-26T17:59:31+00:00
+ld_1e8a9b24c416,BOUNCED,bounce notification via IMAP,A,81,Arghya Paul,Principal,Tata Strategic Management Group,tata.com,arghyapaul@tata.com,CATCH_ALL,80,high,tsmg consulting + python etl,"Hi Arghya,
+
+Tata Group is currently moving to bolster TSMG as its internal consulting mechanism across entities.
+
+I'm a final-year economics student at NMIMS Mumbai and a consulting intern in KPMG's Technology & Data Analytics team. At KPMG, I built an automated Python ETL pipeline for Sony Entertainment's raw BARC viewership data, replacing a manual process.
+
+As TSMG expands its advisory work, I am looking for a part-time or remote strategy and analytics internship alongside my studies. Would it be worth a brief conversation to see if my background fits any upcoming projects?
+
+Best,
+Tanmay Kaper
+BSc Economics, NMIMS Mumbai '27 · linkedin.com/in/tanmay-k-a344b1226",1,2026-11-24T04:28:35+00:00,search:serper,2026-11-26T17:59:27+00:00
+ld_5a7568b9fed9,BOUNCED,bounce notification via IMAP,B,73,Prerana Munipalli,Global Engagement Manager,HCLTech,hcltech.com,pmunipalli@hcltech.com,CATCH_ALL,75,medium,wealth mgmt ai study,"Hi Prerana,
+
+I saw HCLTech’s launch of the AI‑based synthetic research study for the global wealth‑management industry.
+
+At KPMG I built an automated Python ETL pipeline for Sony Entertainment’s raw BARC viewership data, replacing a manual process.
+
+I’m looking for a remote, part‑time internship in data analytics and would appreciate your view on whether HCLTech has openings that fit. Would you be open to a short chat about it?
+
+Best,
+Tanmay Kaper
+BSc Economics, NMIMS Mumbai '27 · linkedin.com/in/tanmay-k-a344b1226",1,2026-11-25T08:56:26+00:00,search:serper,2026-11-26T17:59:30+00:00
+ld_f94e7597abcd,BOUNCED,bounce notification via IMAP,A,80,Nishanth H R,Engagement Manager,Tata Consultancy Services,tata.com,nishanthr@tata.com,CATCH_ALL,79,medium,"tcs ai foundry, python etl","Hi Nishanth,
+
+TCS recently launched the Industrial Intelligence Foundry for AI-led autonomy and is expanding its AI deployment team by up to 8,900 engineers.
+
+I am a final-year economics student at NMIMS Mumbai and currently a consulting intern in KPMG's Technology & Data Analytics team. At KPMG, I built an automated Python ETL pipeline for Sony Entertainment's raw BARC viewership data, replacing a manual process.
+
+I am looking for a remote or part-time internship in data analytics or consulting alongside my final year. Would you be open to a short chat to see if my background could be useful to your team?
+
+Best,
+Tanmay Kaper
+BSc Economics, NMIMS Mumbai '27 · linkedin.com/in/tanmay-k-a344b1226",1,2026-11-25T08:51:40+00:00,search:serper,2026-11-26T17:59:29+00:00
 ld_5c0a4a6298cd,DISQUALIFIED,rejected title term 'recruitment',,,Srinivasareddy Venna,Recruitment Consultant,Confidential ...,,,,,,,,0,,legacy_v1,2026-11-20T14:37:13+00:00
 ld_9125d998b3ef,DISQUALIFIED,Tier C (58): 58/100 → Tier C. Strongest: title_fit (title matches tier B ('engagement manager')). Weakest: signal (no signals found).,C,58,Hari Mutyala,Engagement Manager,Stryker,stryker.com,hari.mutyala@stryker.com,CATCH_ALL,84,low,,,0,,search:serper,2026-11-23T10:08:25+00:00
 ld_a467c7a2c3cf,DISQUALIFIED,title outside target seniority,,,Anil Kumar Putla,Dept Head,India YAMAHA Motor Pvt. Ltd.,,,,,,,,0,,legacy_v1,2026-11-20T14:37:14+00:00
+ld_c79ef9689aca,ENRICHED,domain: boat-lifestyle.com (search),,,Anjani Varshney,Head of Strategy: SCM & Manufacturing,boAt,boat-lifestyle.com,,,,,,,0,,search:serper,2026-11-26T18:00:36+00:00
 ld_0f3852339f40,NEEDS_ENRICHMENT,"UNVERIFIED_QUARANTINED: no mailbox-level evidence (SMTP blocked/inconclusive, no API verifier result)",,,Parag Shah,Founder and Partner,Amara Partners,amarapt.com,parag.shah@privateequityinternational.com,UNVERIFIED_QUARANTINED,20,,,,0,,legacy_v1,2026-11-20T14:37:13+00:00
 ld_14cad4b8fede,NEEDS_ENRICHMENT,all candidate emails INVALID,,,Sanil M Mhatre,Associate Partner,Management Consulting,managementconsulted.com,,,,,,,0,,search:serper,2026-11-23T10:03:53+00:00
 ld_306f0bdbbf6a,NEEDS_ENRICHMENT,all candidate emails INVALID,,,Abhishek Kochar,Partner,Strategy and M&A Consulting,fredericfernandezassociates.com,,,,,,,0,,search:serper,2026-11-23T10:04:34+00:00
 ld_39b19f891130,NEEDS_ENRICHMENT,"UNVERIFIED_QUARANTINED: no mailbox-level evidence (SMTP blocked/inconclusive, no API verifier result)",,,Ramana Reddy,Manager Management Consulting,...,,ramana.reddy@whitehouse.gov,UNVERIFIED_QUARANTINED,20,,,,0,,legacy_v1,2026-11-20T14:37:13+00:00
+ld_3ec91e724443,NEEDS_ENRICHMENT,all candidate emails INVALID,,,Vikram Chandratrey,"Vice President, Marketing Tata Tea",Ex,exofficio.com,,,,,,,0,,search:serper,2026-11-26T18:00:24+00:00
 ld_5579deba0553,NEEDS_ENRICHMENT,no email found; company domain unresolved,,,Prakkhar ..,Co-Founder,KPM Strategy Consulting,,,,,,,,0,,search:serper,2026-11-23T10:02:25+00:00
 ld_68a42509c56c,NEEDS_ENRICHMENT,all candidate emails INVALID,,,Rohit Bhagwat,Founder & CEO,RidgeCrest Strategy Consulting,justdial.com,,,,,,,0,,search:serper,2026-11-23T10:02:49+00:00
 ld_6c1204d092bc,NEEDS_ENRICHMENT,all candidate emails INVALID,,,Vibhas Chandrachood,Senior Consultant,Health Tech ...,,,,,,,,0,,legacy_v1,2026-11-20T14:37:14+00:00
 ld_705340120d61,NEEDS_ENRICHMENT,"UNVERIFIED_QUARANTINED: no mailbox-level evidence (SMTP blocked/inconclusive, no API verifier result)",,,Adam Kay,TMT Strategy Senior Consultant,Monitor ...,,adam.kay@monitors.com,UNVERIFIED_QUARANTINED,20,,,,0,,legacy_v1,2026-11-20T14:37:14+00:00
 ld_726bb9a7497b,NEEDS_ENRICHMENT,all candidate emails INVALID,,,Ashish Sharma,Head of Strategy & Product,Transforming CX,coveo.com,,,,,,,0,,search:serper,2026-11-23T10:05:43+00:00
+ld_83166561f662,NEEDS_ENRICHMENT,no email found; company domain unresolved,,,Megha Kapoor,Business Head,BPB Publications| Ex-EY,,,,,,,,0,,search:serper,2026-11-26T18:00:34+00:00
 ld_862eee737f0c,NEEDS_ENRICHMENT,all candidate emails INVALID,,,Anu Kaimal,Founder @Matterfox Consulting,Insights & Brand Strategy,provokeinsights.com,,,,,,,0,,search:serper,2026-11-23T10:03:08+00:00
+ld_9cdb9a62ce16,NEEDS_ENRICHMENT,no email found; company domain unresolved,,,Ashish Khare,Chief of Staff (COO),GCC Strategy & Ops,,,,,,,,0,,search:serper,2026-11-26T18:00:36+00:00
 ld_a07c21ac930d,NEEDS_ENRICHMENT,"UNVERIFIED_QUARANTINED: no mailbox-level evidence (SMTP blocked/inconclusive, no API verifier result)",,,Kara Vachon,"Senior Manager, Customer Strategy",...,,kara.vachon@whitehouse.gov,UNVERIFIED_QUARANTINED,20,,,,0,,legacy_v1,2026-11-20T14:37:14+00:00
 ld_a543ed1ed69f,NEEDS_ENRICHMENT,"UNVERIFIED_QUARANTINED: no mailbox-level evidence (SMTP blocked/inconclusive, no API verifier result)",,,Joseph Ooi,"Vice President, Infrastructure Private Equity",...,,joseph.ooi@whitehouse.gov,UNVERIFIED_QUARANTINED,20,,,,0,,legacy_v1,2026-11-20T14:37:14+00:00
 ld_af7b9c72768b,NEEDS_ENRICHMENT,all candidate emails INVALID,,,Siddharth R.,Vice President,Strategic planning & Insights,myworkdayjobs.com,,,,,,,0,,search:serper,2026-11-23T10:06:11+00:00
 ld_c373db8a1bb6,NEEDS_ENRICHMENT,all candidate emails INVALID,,,Udayan Paranjpye,Partner,Vertebrand Management Consulting Pvt. Ltd.,unstop.com,,,,,,,0,,search:serper,2026-11-23T18:29:31+00:00
 ld_c82b38c9d797,NEEDS_ENRICHMENT,no email found; company domain unresolved,,,Abhishek Singh,Engagement Manager,Strategic Accounts l PMP®,,,,,,,,0,,search:serper,2026-11-23T10:06:11+00:00
 ld_d94669499a8b,NEEDS_ENRICHMENT,all candidate emails INVALID,,,Srinivas Rao,Marketing Director,AI-Driven B2B SaaS Growth,mediabistro.com,,,,,,,0,,search:serper,2026-11-23T10:05:08+00:00
+ld_de7ff3889b7a,NEEDS_ENRICHMENT,CATCH_ALL: catch-all domain; mailbox cannot be confirmed,,,Abhishek Bansal,Chief of Staff,SPJIMR 2023-25,spjimr.org,abhishek.bansal@spjimr.org,CATCH_ALL,25,,,,0,,search:serper,2026-11-26T18:00:46+00:00
+ld_e302161cb695,NEEDS_ENRICHMENT,all candidate emails INVALID,,,Saloni Bhanushali,Chief of Staff,AI,ai.google,,,,,,,0,,search:serper,2026-11-26T18:00:55+00:00
 ld_f4e454a2aaaa,NEEDS_ENRICHMENT,all candidate emails INVALID,,,Deepa Pillai,Founder Growth Darji,Business Consulting,bcg.com,,,,,,,0,,search:serper,2026-11-23T10:03:29+00:00
 ld_f66e83d37053,NEEDS_ENRICHMENT,all candidate emails INVALID,,,Piyush Gupta,Founder,Visista Farms,vittmarg.com,,,,,,,0,,search:serper,2026-11-23T10:03:39+00:00
 ld_027eefba8c57,NEEDS_REVIEW,"QA failed after rewrite: unsupported claim: The claim 'your talk with IIIT Hyderabad' misinterprets the facts; Sridhar Viswanathan is affiliated with Bank of America, while S Bapi Raju is from IIIT Hy",B,76,Sridhar Viswanathan,Assistant Vice President,Big Data Analytics,ibm.com,sridhar.viswanathan@ibm.com,CATCH_ALL,80,high,supply chain analytics paper,"Hi Sridhar,
@@ -833,17 +903,6 @@ Kind regards,
 Tanmay Kaper
 
 tanmay.kaper1401@gmail.com",1,2026-10-27T10:15:47.045391+00:00,legacy_v1,2026-11-20T14:35:31+00:00
-ld_171c09811531,SENT,step 0 sent,B,64,Ankur Khanna,Vice President,"Data, Analytics and AI",sas.com,ankur.khanna@sas.com,CATCH_ALL,81,low,"sas analytics, kpmg dashboards","Hi Ankur,
-
-SAS Viya focuses on integrating advanced analytics and governance for enterprise decision-making across complex industries.
-
-I am a final-year economics student at NMIMS Mumbai and a consulting intern in KPMG's Technology & Data Analytics team. At KPMG, I rebuilt C-suite dashboards in SAP Analytics Cloud for Sony Entertainment, making them over 80% more responsive, and owned the CEO dashboard data feeds.
-
-I am looking for a remote part-time internship in data analytics alongside my final year. Would you be open to a quick conversation, or is there someone else on your team better placed to ask?
-
-Best,
-Tanmay Kaper
-BSc Economics, NMIMS Mumbai '27 · linkedin.com/in/tanmay-k-a344b1226",1,2026-11-25T19:26:44+00:00,search:serper,2026-11-25T19:26:44+00:00
 ld_1795134b4c47,SENT,v1 status Sent,,,Shashank V,Product Manager @ Edgetensor,,,shashank.v@x.com,,,,edgetensor's data driven client discovery,"I've been following Edgetensor's efforts to enhance client discovery on LinkedIn. As a BSc Economics undergrad with KPMG data experience, I can help optimize analytics for business growth. Would a quick 15-minute call this week work? 
 — Tanmay
 tanmay.kaper1401@gmail.com",1,2026-06-19T16:13:57+00:00,legacy_v1,2026-11-20T14:35:31+00:00
@@ -1027,17 +1086,6 @@ Kind regards,
 Tanmay Kaper
 
 tanmay.kaper1401@gmail.com",1,2026-11-10T13:18:39.514475+00:00,legacy_v1,2026-11-20T14:35:31+00:00
-ld_1e8a9b24c416,SENT,step 0 sent,A,81,Arghya Paul,Principal,Tata Strategic Management Group,tata.com,arghyapaul@tata.com,CATCH_ALL,80,high,tsmg consulting + python etl,"Hi Arghya,
-
-Tata Group is currently moving to bolster TSMG as its internal consulting mechanism across entities.
-
-I'm a final-year economics student at NMIMS Mumbai and a consulting intern in KPMG's Technology & Data Analytics team. At KPMG, I built an automated Python ETL pipeline for Sony Entertainment's raw BARC viewership data, replacing a manual process.
-
-As TSMG expands its advisory work, I am looking for a part-time or remote strategy and analytics internship alongside my studies. Would it be worth a brief conversation to see if my background fits any upcoming projects?
-
-Best,
-Tanmay Kaper
-BSc Economics, NMIMS Mumbai '27 · linkedin.com/in/tanmay-k-a344b1226",1,2026-11-24T04:28:35+00:00,search:serper,2026-11-24T04:28:35+00:00
 ld_1eba9693c6db,SENT,v1 status Sent,,,Xiaoxin Hu,"Assistant Vice President, Senior Analyst",Wellington ...,wellington.com,xhu@wellington.com,,,,"KPMG data background, Wellington inquiry","Dear Xiaoxin,
 
 Wellington's recent integration of ESG metrics into its multi‑asset portfolios, particularly the quantitative weighting model launched in Q2 2024, demonstrates a forward‑looking approach to sustainable investing.
@@ -2755,17 +2803,6 @@ Thank you for considering my request.
 Kind regards,
 Tanmay Kaper
 tanmay.kaper1401@gmail.com",1,2026-11-09T23:42:59.493436+00:00,legacy_v1,2026-11-20T14:35:31+00:00
-ld_5a7568b9fed9,SENT,step 0 sent,B,73,Prerana Munipalli,Global Engagement Manager,HCLTech,hcltech.com,pmunipalli@hcltech.com,CATCH_ALL,75,medium,wealth mgmt ai study,"Hi Prerana,
-
-I saw HCLTech’s launch of the AI‑based synthetic research study for the global wealth‑management industry.
-
-At KPMG I built an automated Python ETL pipeline for Sony Entertainment’s raw BARC viewership data, replacing a manual process.
-
-I’m looking for a remote, part‑time internship in data analytics and would appreciate your view on whether HCLTech has openings that fit. Would you be open to a short chat about it?
-
-Best,
-Tanmay Kaper
-BSc Economics, NMIMS Mumbai '27 · linkedin.com/in/tanmay-k-a344b1226",1,2026-11-25T08:56:26+00:00,search:serper,2026-11-25T08:56:26+00:00
 ld_5ac17ba5d020,SENT,v1 status Sent,,,Michelle Hormesch,Manager,kobaltblau ...,,michelle.hormesch@kobaltblau.com,,,,Kobaltblau — a question on data integration,"Dear Michelle,
 
 I was impressed by kobaltblau's recent data integration project for the retail sector. In my current KPMG internship, I faced a tight deadline to translate raw client data into actionable insights for a strategy engagement.
@@ -7500,17 +7537,6 @@ Would a quick 15‑minute call this week work?
 I have attached my resume for your reference.
 — Tanmay Kaper
 tanmay.kaper1401@gmail.com",1,2026-07-27T08:33:25.059831+00:00,legacy_v1,2026-11-20T14:35:31+00:00
-ld_f94e7597abcd,SENT,step 0 sent,A,80,Nishanth H R,Engagement Manager,Tata Consultancy Services,tata.com,nishanthr@tata.com,CATCH_ALL,79,medium,"tcs ai foundry, python etl","Hi Nishanth,
-
-TCS recently launched the Industrial Intelligence Foundry for AI-led autonomy and is expanding its AI deployment team by up to 8,900 engineers.
-
-I am a final-year economics student at NMIMS Mumbai and currently a consulting intern in KPMG's Technology & Data Analytics team. At KPMG, I built an automated Python ETL pipeline for Sony Entertainment's raw BARC viewership data, replacing a manual process.
-
-I am looking for a remote or part-time internship in data analytics or consulting alongside my final year. Would you be open to a short chat to see if my background could be useful to your team?
-
-Best,
-Tanmay Kaper
-BSc Economics, NMIMS Mumbai '27 · linkedin.com/in/tanmay-k-a344b1226",1,2026-11-25T08:51:40+00:00,search:serper,2026-11-25T08:51:40+00:00
 ld_f97257e21207,SENT,v1 status Sent,,,Vidushi Narang,Engagement Manager,McKinsey & Company,mckinsey.com,vidushi_narang@mckinsey.com,,,,Quick question on McKinsey data,"Dear Vidushi,
 
 I noticed McKinsey’s recent publication on digital transformation in Indian banking.

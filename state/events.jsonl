@@ -13,3 +13,7 @@
 {"kind": "sent", "lead_id": "ld_d337ebc0aec3", "message_id": "<179559686761.2483.103561057871580642@gmail.com>", "step": 0, "subject": "nmims econ, pricing analysis", "to": "kushal.raja@bain.com", "ts": "2026-11-25T08:54:29+00:00"}
 {"kind": "sent", "lead_id": "ld_5a7568b9fed9", "message_id": "<179559698589.2483.2112610639267003272@gmail.com>", "step": 0, "subject": "wealth mgmt ai study", "to": "pmunipalli@hcltech.com", "ts": "2026-11-25T08:56:26+00:00"}
 {"kind": "sent", "lead_id": "ld_171c09811531", "message_id": "<179563480367.2426.4561592139309464147@gmail.com>", "step": 0, "subject": "sas analytics, kpmg dashboards", "to": "ankur.khanna@sas.com", "ts": "2026-11-25T19:26:44+00:00"}
+{"email": "arghyapaul@tata.com", "kind": "bounced", "lead_id": "ld_1e8a9b24c416", "ts": "2026-11-26T17:59:27+00:00"}
+{"email": "nishanthr@tata.com", "kind": "bounced", "lead_id": "ld_f94e7597abcd", "ts": "2026-11-26T17:59:29+00:00"}
+{"email": "pmunipalli@hcltech.com", "kind": "bounced", "lead_id": "ld_5a7568b9fed9", "ts": "2026-11-26T17:59:30+00:00"}
+{"email": "ankur.khanna@sas.com", "kind": "bounced", "lead_id": "ld_171c09811531", "ts": "2026-11-26T17:59:31+00:00"}
