@@ -383,6 +383,64 @@ QA: PASS after 1 attempt(s)
 
 ---
 
+### Anjani Varshney — Head of Strategy: SCM & Manufacturing, boAt
+`ld_c79ef9689aca` · state **APPROVED** · email `anjani.varshney@imaginemarketingindia.com` **VERIFIED** (95, via smtp)
+**Score 80/100 → Tier A** — title_fit 27/30 · company_fit 19/25 · deliverability 20/20 · signal 4/15 · hook_quality 10/10
+> 80/100 → Tier A. Strongest: deliverability (verified via smtp). Weakest: signal (India (priority geography)).
+
+**Hook confidence:** high — person-level hook found (post: F4)
+**Company:** boAt Lifestyle is India’s No.1 Earwear Audio Brand offering earbuds, headphones, earphones, and wireless speakers with contemporary designs and best features.
+**Role scope:** likely leads supply chain and manufacturing strategy initiatives, overseeing end‑to‑end processes and aligning them with business objectives.
+
+**Verified facts**
+- F1 [company/business] boAt Lifestyle offers Earbuds, Headphones, Earphones & Wireless Speakers with contemporary designs and best features, and is India’s No.1 Earwear Audio Brand. — [source](https://boat-lifestyle.com/)
+- F2 [person/role] Anjani Varshney is Head of Strategy - SCM & Manufacturing at boAt. — [source](https://theorg.com/org/boat/person/anjani-varshney)
+- F3 [person/role] Anjani is a strategic leader heading Supply Chain and Manufacturing strategy at boAt. — [source](https://humantic.ai/public-profile/anjani-varshney-7072d4b1977cd590)
+- F4 [person/post] Anjani Varshney discusses supply chain strategy and execution. — [source](https://www.linkedin.com/posts/flexiroundtablestopleaders_leadership-supplychainintelligence-connectedoperations-activity-7510324383077515264-d5xK)
+- F5 [person/article] The authors would like to thank Anjani Varshney for contributing to the development of this report. — [source](https://www.scribd.com/document/664130310/bain-report-electric-vehicles-are-poised-to-create-a-100b-opportunity-in-india-by-2030)
+
+**Angles**
+- Your pricing‑analysis expertise (yokohama_pricing) can help optimize boAt’s supply‑chain decisions by identifying market pricing gaps and informing manufacturing cost strategies. (facts: F2, F4; proof: yokohama_pricing)
+- Your experience building automated data pipelines (kpmg_sony_etl) could support boAt’s manufacturing data integration, enhancing real‑time decision‑making across the supply chain. (facts: F2, F3, F1; proof: kpmg_sony_etl)
+
+**Email 1** (96 words) — subject: `boat supply chain strategy`
+```text
+Hi Anjani,
+
+I saw your discussion on supply chain strategy and execution at boAt. As a final-year economics student at NMIMS Mumbai currently interning in KPMG’s technology and data analytics team, I focus on building quantitative tools for strategic decision-making.
+
+During my data analyst internship at Yokohama Off-Highway Tyres, I analysed 10 competitor portfolios across 200+ SKUs to find pricing gaps for the strategy team.
+
+I am looking for a remote or part-time strategy role alongside my final year. Would you be open to a brief chat about whether your team ever takes on project interns?
+
+Best,
+Tanmay Kaper
+BSc Economics, NMIMS Mumbai '27 · linkedin.com/in/tanmay-k-a344b1226
+```
+
+**Follow-up 1** (51 words) — subject: `Re: boat supply chain strategy`
+```text
+Hi Anjani,
+
+At KPMG in Technology & Data Analytics, I built an automated Python ETL pipeline for Sony Entertainment's raw BARC viewership data to replace a manual process. I'm keen to see if similar pipeline automation could support boAt's supply chain data integration.
+
+Would it be worth sending over a one-page CV?
+
+Tanmay
+```
+
+**Follow-up 2** (43 words) — subject: `Re: boat supply chain strategy`
+```text
+Hi Anjani,
+
+If your team isn't looking for part-time analytics support right now, no worries at all — I won't keep emailing. If there is someone else on the supply chain team better placed to speak with, please feel free to let me know.
+
+Tanmay
+```
+QA: PASS after 2 attempt(s)
+
+---
+
 ### Sridhar Viswanathan — Assistant Vice President, Big Data Analytics
 `ld_027eefba8c57` · state **NEEDS_REVIEW** · email `sridhar.viswanathan@ibm.com` **CATCH_ALL** (80, via catch_all)
 **Score 76/100 → Tier B** — title_fit 30/30 · company_fit 19/25 · deliverability 13/20 · signal 4/15 · hook_quality 10/10
