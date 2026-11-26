@@ -126,7 +126,12 @@ class Gmail:
         if replies:
             body = self._fetch_text("INBOX", replies[-1])
             return "opted_out" if OPT_OUT_RX.search(body) else "replied"
-        bounces = self._search("INBOX", f'(FROM "mailer-daemon" SINCE {since} BODY "{addr}")')
+        # Gmail DSNs come from mailer-daemon; Microsoft 365 / Exchange NDRs from postmaster@<tenant>.
+        # "Delay" DSNs are transient warnings, not bounces.
+        bounces = self._search(
+            "INBOX",
+            f'(OR FROM "mailer-daemon" FROM "postmaster" SINCE {since} BODY "{addr}" NOT SUBJECT "Delay")',
+        )
         return "bounced" if bounces else "none"
 
     def already_sent(self, to: str, subject: str, step: int, since: datetime) -> bool:
