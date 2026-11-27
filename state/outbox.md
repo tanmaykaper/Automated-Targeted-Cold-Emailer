@@ -331,6 +331,63 @@ QA: PASS after 1 attempt(s)
 
 ---
 
+### Alan Hart — CMO Advisor, Podcast Host
+`ld_426ef481aaf8` · state **APPROVED** · email `alan@thepodcasthost.com` **VERIFIED** (95, via smtp)
+**Score 85/100 → Tier A** — title_fit 24/30 · company_fit 19/25 · deliverability 20/20 · signal 12/15 · hook_quality 10/10
+> 85/100 → Tier A. Strongest: deliverability (verified via smtp). Weakest: company_fit (Data & Analytics; corporate company).
+
+**Hook confidence:** high — person-level hook found (post: F2)
+**Company:** Alan Hart is a marketing thought leader, podcast host and CMO advisor, focusing on marketing strategy, brand, innovation and growth.
+**Role scope:** He likely owns marketing strategy and brand innovation initiatives for his podcasts and advisory clients.
+
+**Verified facts**
+- F1 [person/role] Alan B. Hart – Marketing Thought Leader, Speaker, Podcast Host, Consultant and Advisor. — [source](https://www.alan-hart.com/)
+- F2 [person/post] CMO Advisor | Podcast Host | Marketing Strategy, Brand, Innovation, Growth | LinkedIn Top Voice. — [source](https://www.linkedin.com/posts/alanhart_podcast-activity-7470836353426038784-WX9U)
+- F3 [person/podcast] Marketing Beyond with Alan B. Hart - Podcast brought to you by Deloitte Digital. — [source](https://podcasts.apple.com/us/podcast/marketing-beyond-with-alan-b-hart/id1035441301)
+- F4 [person/launch] Our previous series, Marketing Today, has evolved into ... — [source](https://podcasts.apple.com/us/podcast/marketing-beyond-with-alan-b-hart/id1035441301)
+- F5 [person/podcast] Marketing Today with Alan Hart. — [source](https://www.youtube.com/c/MarketingTodaywithAlanHart)
+- F6 [person/other] Hart, is shortlisted for the 2026 B2B Podcast Host Awards. — [source](https://www.fame.so/b2b-podcast-host-awards/nominees/alan-b-hart)
+
+**Angles**
+- Alan may want to enhance his data-driven marketing and podcast content, and the sender's experience building automated ETL pipelines for Sony Entertainment demonstrates the analytical expertise he values. (facts: F2, F3; proof: kpmg_sony_etl)
+- His interest in innovation and growth could be supported by the sender's pricing analysis for Yokohama Off-Highway Tyres, offering fresh competitive insights for strategic recommendations. (facts: F2, F5; proof: yokohama_pricing)
+
+**Email 1** (85 words) — subject: `marketing beyond data work`
+```text
+Hi Alan,
+
+I noticed the transition of your Marketing Today series into Marketing Beyond with Deloitte Digital.
+
+I'm a final-year economics student at NMIMS Mumbai currently interning in KPMG's Technology & Data Analytics team. At KPMG, I built an automated Python ETL pipeline for Sony Entertainment's raw BARC viewership data, replacing a manual process.
+
+I'm looking for a remote or part-time internship in strategy or data analytics alongside my studies. Would you be open to a short conversation about whether you ever take on remote interns?
+
+Best,
+Tanmay Kaper
+BSc Economics, NMIMS Mumbai '27 · linkedin.com/in/tanmay-k-a344b1226
+```
+
+**Follow-up 1** (47 words) — subject: `Re: marketing beyond data work`
+```text
+Hi Alan,
+
+As another angle on my background, during my internship at Yokohama Off-Highway Tyres I analysed 10 competitor portfolios across 200+ SKUs to find pricing gaps for the strategy team. I'd like to apply similar structured analysis to marketing research. Is it worth a brief chat?
+
+Tanmay
+```
+
+**Follow-up 2** (40 words) — subject: `Re: marketing beyond data work`
+```text
+Hi Alan,
+
+If this isn't a fit right now, no worries at all — I won't keep emailing. If there is someone else in your network who might be open to taking on a remote analytics intern, I'd appreciate any direction.
+
+Tanmay
+```
+QA: PASS after 1 attempt(s)
+
+---
+
 ### Amit Kapur — Vice President, AI, Data and Analytics
 `ld_512710f267b6` · state **APPROVED** · email `amit.kapur@nttdata.com` **CATCH_ALL** (82, via catch_all)
 **Score 68/100 → Tier B** — title_fit 30/30 · company_fit 19/25 · deliverability 13/20 · signal 4/15 · hook_quality 2/10
